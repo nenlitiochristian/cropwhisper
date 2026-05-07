@@ -31,7 +31,7 @@ The entire interaction is a single tap: point your camera at your crop, talk in 
        Camera captures the plant/field simultaneously
        GPS captured silently in background
 
-③ Processing (3–8 seconds)
+③ Processing (3-8 seconds)
    └── Subtle animation — the app is thinking, not frozen
        Four agents run in sequence with shared context
 
