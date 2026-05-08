@@ -2,6 +2,8 @@ import os
 import json
 import re
 import time
+import math
+import requests
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,6 +15,10 @@ import gradio as gr
 
 from agent import AgentState, construct_graph, get_all_model_names
 from supabase import create_client, Client
+
+SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
+supabase: Client | None = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 # --- Graph Construction ---
 app_graph = construct_graph()
@@ -58,7 +64,94 @@ AGENT_STATE_KEY = {
 }
 
 
+SOIL_PROPS = {
+    "phh2o":    ("pH (water)",            ""),
+    "clay":     ("Clay",                  "%"),
+    "sand":     ("Sand",                  "%"),
+    "silt":     ("Silt",                  "%"),
+    "soc":      ("Organic Carbon",        "g/kg"),
+    "nitrogen": ("Nitrogen",              "g/kg"),
+    "bdod":     ("Bulk Density",          "kg/dm³"),
+    "cec":      ("Cation Exchange Cap.",  "mmol/kg"),
+}
+
+
 # ── helpers ──────────────────────────────────────────────────────────────────
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def _find_nearest_location(lat: float, lon: float) -> dict:
+    if not supabase:
+        return {"lat": lat, "lon": lon, "country": "Unknown", "region": "Unknown", "continent": "Unknown"}
+    rows = supabase.table("location").select("lat,lon,country,region,continent").execute().data
+    if not rows:
+        return {"lat": lat, "lon": lon}
+    nearest = min(rows, key=lambda r: _haversine(lat, lon, r["lat"], r["lon"]))
+    nearest["distance_km"] = round(_haversine(lat, lon, nearest["lat"], nearest["lon"]), 1)
+    return nearest
+
+
+def _get_soil_data(lat: float, lon: float) -> dict:
+    try:
+        resp = requests.get(
+            "https://rest.isric.org/soilgrids/v2.0/properties/query",
+            params={
+                "lon": lon, "lat": lat,
+                "property": list(SOIL_PROPS.keys()),
+                "depth": "0-5cm",
+                "value": "mean",
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        layers = resp.json().get("properties", {}).get("layers", [])
+        result = {}
+        for layer in layers:
+            name = layer["name"]
+            d_factor = layer.get("unit_measure", {}).get("d_factor", 1) or 1
+            depths = layer.get("depths", [])
+            if depths:
+                raw = depths[0].get("values", {}).get("mean")
+                result[name] = round(raw / d_factor, 2) if raw is not None else None
+        return result
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _format_soil_card(location: dict, soil: dict) -> str:
+    country   = location.get("country", "Unknown")
+    region    = location.get("region", "Unknown")
+    continent = location.get("continent", "Unknown")
+    dist      = location.get("distance_km", "")
+    dist_str  = f'<span style="font-size:11px;color:#888;margin-left:8px">~{dist} km from input</span>' if dist else ""
+
+    rows = ""
+    for key, (label, unit) in SOIL_PROPS.items():
+        val = soil.get(key)
+        display = f"{val} {unit}".strip() if val is not None else '<span style="color:#aaa">N/A</span>'
+        rows += (
+            f'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8f5e9">'
+            f'<span style="color:#555">{label}</span>'
+            f'<span style="font-weight:600;color:#1b5e20">{display}</span>'
+            f'</div>'
+        )
+
+    return (
+        f'<div style="background:#f1f8f1;border:1px solid #a5d6a7;border-radius:10px;padding:16px 18px;margin-bottom:20px">'
+        f'  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a7a4a;margin-bottom:6px">📍 Location & Soil Context</div>'
+        f'  <div style="font-size:15px;font-weight:600;color:#1b5e20;margin-bottom:2px">{country}{dist_str}</div>'
+        f'  <div style="font-size:12px;color:#666;margin-bottom:14px">{region} · {continent}</div>'
+        f'  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4a7a4a;margin-bottom:6px">🌱 Soil (0–5 cm depth)</div>'
+        f'  {rows}'
+        f'</div>'
+    )
+
 
 def _extract_text(agent_id: str, data: dict) -> str:
     key     = AGENT_STATE_KEY[agent_id]
@@ -91,11 +184,12 @@ def _dict_to_lines(obj, indent: int = 0) -> str:
     return "\n".join(lines)
 
 
-def _pipeline_html(completed: dict, running: str | None, streaming: tuple[str, str] | None = None) -> str:
+def _pipeline_html(completed: dict, running: str | None, streaming: tuple[str, str] | None = None, pre_step: str | None = None) -> str:
     """Build the pipeline progress view.
     completed: {agent_id: full_text}
     running: agent_id currently waiting for LLM
     streaming: (agent_id, partial_text) currently being revealed
+    pre_step: label shown before pipeline starts (location/soil lookup)
     """
     step = len(completed)
     pct  = int((step / 4) * 100)
@@ -103,12 +197,13 @@ def _pipeline_html(completed: dict, running: str | None, streaming: tuple[str, s
     h = [SCROLL_WRAP_OPEN, '<div style="padding:20px 24px;font-family:inherit">']
 
     # Header
+    subtitle = pre_step if pre_step else f"Step {step} of 4 complete"
     h.append(
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
         f'  <span style="font-size:22px">🌱</span>'
         f'  <div>'
         f'    <div style="font-weight:700;font-size:16px;color:#1b5e20">Analyzing your crop</div>'
-        f'    <div style="font-size:12px;color:#666;margin-top:2px">Step {step} of 4 complete</div>'
+        f'    <div style="font-size:12px;color:#666;margin-top:2px">{subtitle}</div>'
         f'  </div>'
         f'</div>'
     )
@@ -184,16 +279,19 @@ def _pipeline_html(completed: dict, running: str | None, streaming: tuple[str, s
     return "".join(h)
 
 
-def _format_action_plan(plan: dict) -> str:
+def _format_action_plan(plan: dict, soil_card: str = "") -> str:
     if plan.get("parse_error"):
         raw = plan.get("raw_output", "")
         raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
         try:
             plan = json.loads(raw)
         except json.JSONDecodeError:
-            return SCROLL_WRAP_OPEN + f'<div style="padding:20px;white-space:pre-wrap">{raw}</div>' + SCROLL_WRAP_CLOSE
+            return SCROLL_WRAP_OPEN + soil_card + f'<div style="padding:20px;white-space:pre-wrap">{raw}</div>' + SCROLL_WRAP_CLOSE
 
     h = [SCROLL_WRAP_OPEN, '<div style="padding:20px;font-family:inherit;animation:fadeSlideIn 0.4s ease">']
+
+    if soil_card:
+        h.append(soil_card)
 
     condition = plan.get("condition", "")
     if condition:
@@ -281,7 +379,23 @@ def _run_report(text: str, latitude: float, longitude: float, image_path: str | 
     btn_disabled = gr.update(interactive=False, value="Analyzing…")
     btn_enabled  = gr.update(interactive=True,  value="Run Analysis")
 
-    # Initial state: all pending, first agent "running"
+    # Pre-step: resolve location
+    yield _pipeline_html(completed, running=None, pre_step="Resolving nearest location…"), btn_disabled
+    location = _find_nearest_location(float(latitude), float(longitude))
+
+    # Pre-step: fetch soil data using matched coordinates
+    yield _pipeline_html(completed, running=None, pre_step="Fetching soil data from SoilGrids…"), btn_disabled
+    soil = _get_soil_data(location["lat"], location["lon"])
+    soil_card = _format_soil_card(location, soil)
+
+    # Enrich region_context with resolved location + soil
+    initial_state["region_context"].update({
+        "country":   location.get("country"),
+        "region":    location.get("region"),
+        "continent": location.get("continent"),
+        "soil":      soil,
+    })
+
     yield _pipeline_html(completed, running="agent_1_visual"), btn_disabled
 
     try:
@@ -291,7 +405,7 @@ def _run_report(text: str, latitude: float, longitude: float, image_path: str | 
 
             if node_name == "agent_4_action":
                 action_plan = node_data.get("action_plan", {})
-                yield _format_action_plan(action_plan), btn_enabled
+                yield _format_action_plan(action_plan, soil_card=soil_card), btn_enabled
                 return
 
             # Stream the agent's text output line by line
