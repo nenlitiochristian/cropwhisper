@@ -1,12 +1,14 @@
 
 import json
 import os
+import re
 from typing import TypedDict, Dict
 
 from utils.image import encode_image_to_base64
 
 from openai import OpenAI
 from langgraph.graph import StateGraph, END
+from supabase import create_client, Client as SupabaseClient
 
 class AgentState(TypedDict):
     image_path: str
@@ -26,6 +28,70 @@ client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none")
 client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none")
 
 _model_name_cache: Dict[str, str] = {}
+
+# Lazy Supabase client — initialised once on first RAG call
+_supabase: SupabaseClient | None = None
+_rag_cache: list[dict] | None = None   # cache all 190 rows after first fetch
+
+
+def _get_supabase() -> SupabaseClient | None:
+    global _supabase
+    if _supabase is None:
+        url = os.environ.get("SUPABASE_URL", "")
+        key = os.environ.get("SUPABASE_KEY", "")
+        if url and key:
+            _supabase = create_client(url, key)
+    return _supabase
+
+
+def _visual_to_text(visual: dict) -> str:
+    """Flatten the visual description dict into a plain text blob for keyword matching."""
+    if visual.get("parse_error"):
+        raw = visual.get("raw_output", "")
+        return re.sub(r"```.*?```", "", raw, flags=re.DOTALL)
+    parts = []
+    for key in ["lesions_and_anomalies", "color_and_gradients", "distribution_pattern"]:
+        val = visual.get(key, "")
+        if isinstance(val, dict):
+            parts.append(" ".join(str(v) for v in val.values()))
+        elif isinstance(val, str):
+            parts.append(val)
+    return " ".join(parts)
+
+
+def _rag_lookup(visual: dict, top_k: int = 5) -> list[dict]:
+    """Return top_k rag_documents rows whose visual_description best matches the query."""
+    global _rag_cache
+    sb = _get_supabase()
+    if sb is None:
+        return []
+
+    # Fetch all rows once and cache them
+    if _rag_cache is None:
+        try:
+            _rag_cache = sb.table("rag_documents").select(
+                "crop,condition,visual_description"
+            ).execute().data
+        except Exception:
+            return []
+
+    query_words = set(
+        w for w in _visual_to_text(visual).lower().split() if len(w) > 3
+    )
+    if not query_words:
+        return []
+
+    scored = []
+    for row in _rag_cache:
+        doc_words = set(
+            w for w in (row.get("visual_description") or "").lower().split() if len(w) > 3
+        )
+        overlap = len(query_words & doc_words)
+        if overlap > 0:
+            scored.append((overlap, row))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [row for _, row in scored[:top_k]]
 
 
 def get_model_name(client: OpenAI) -> str:
@@ -116,12 +182,27 @@ def _analyzer_node(state: AgentState) -> dict:
     region = state["region_context"]
     system_prompt = _get_prompt("analyzer")
 
+    # RAG: find similar disease cases from the database
+    similar_cases = _rag_lookup(visual)
+    rag_db_section = ""
+    if similar_cases:
+        lines = []
+        for doc in similar_cases:
+            snippet = (doc.get("visual_description") or "")[:300].replace("\n", " ")
+            lines.append(f"- {doc.get('crop')} / {doc.get('condition')}: {snippet}…")
+        rag_db_section = (
+            "\n\n## Input 4 — Similar Cases from Disease Database\n"
+            "Use these confirmed disease cases to inform your differential diagnosis:\n"
+            + "\n".join(lines)
+        )
+
     user_prompt = (
         f"## Input 1 — Visual Description (from Agent 1)\n"
         f"```json\n{json.dumps(visual, indent=2)}\n```\n\n"
         f"## Input 2 — Farmer's Statement\n\"{transcript}\"\n\n"
-        f"## Input 3 — Regional/Environmental Context (RAG)\n"
-        f"```json\n{json.dumps(region, indent=2)}\n```\n\n"
+        f"## Input 3 — Regional/Environmental Context\n"
+        f"```json\n{json.dumps(region, indent=2)}\n```"
+        f"{rag_db_section}\n\n"
         "Produce your differential diagnosis now."
     )
 
