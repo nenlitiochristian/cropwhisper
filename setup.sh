@@ -7,19 +7,36 @@ sudo apt-get update && sudo apt-get install -y ffmpeg libavcodec-extra python3-v
 python3 -m venv crop_env
 source crop_env/bin/activate
 
+# For Windows activate the virtual environment using the following command
+# .\crop_env\Scripts\Activate.ps1
+
 # 3. Install Python dependencies inside the virtual environment
 pip install --upgrade pip
 pip install \
-    langgraph==0.2.35 \
-    supabase==2.11.0 \
+    langgraph \
+    supabase \
     openai \
-    gradio==5.29.0 \
-    transformers>=4.56.0 \
-    accelerate==1.3.0 \
-    soundfile==0.13.0 \
-    librosa==0.11.0 \
-    sentencepiece==0.2.0 \
+    gradio \
+    transformers \
+    accelerate \
+    soundfile \
+    librosa \
+    sentencepiece \
     vllm==0.17.1
+
+# For windows use the following command to install dependencies
+# python -m pip install --upgrade pip
+# python -m pip install `
+#     langgraph `
+#     supabase `
+#     openai `
+#     gradio `
+#     transformers `
+#     accelerate `
+#     soundfile `
+#     librosa `
+#     sentencepiece `
+#     vllm==0.17.1
 
 # 4. Agents Setup
 

@@ -1,3 +1,0 @@
-gradio==5.29.0
-langgraph==0.2.35
-openai
