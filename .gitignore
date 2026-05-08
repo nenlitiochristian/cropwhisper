@@ -32,6 +32,9 @@ MANIFEST
 *.manifest
 *.spec
 
+# Plant disease image files
+plant_disease_images/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
