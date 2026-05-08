@@ -8,7 +8,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from agent import AgentState, construct_graph
+from agent import AgentState, construct_graph, get_all_model_names
 from supabase import create_client, Client
 
 # Supabase Configuration
@@ -68,10 +68,20 @@ def _run_report(
     )
 
 
+def _refresh_models():
+    """Fetch the resolved model name from each vLLM server."""
+    names = get_all_model_names()
+    return "\n".join(f"- **{role}**: `{model}`" for role, model in names.items())
+
+
 with gr.Blocks(title="CropWhisper") as demo:
     gr.Markdown("# CropWhisper")
     gr.Markdown("Upload a crop image, add transcript and coordinates, then run the 4-agent pipeline.")
-    # gr.Markdown(os.environ.get("VLLM_BASE_URL", "http://localhost"))
+
+    with gr.Accordion("vLLM Model Info", open=False):
+        model_info = gr.Markdown("Click **Refresh** to query vLLM servers for loaded model names.")
+        refresh_btn = gr.Button("Refresh", size="sm")
+        refresh_btn.click(fn=_refresh_models, inputs=[], outputs=[model_info])
 
     with gr.Row():
         with gr.Column(scale=1):

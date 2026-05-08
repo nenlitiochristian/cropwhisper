@@ -2,6 +2,7 @@
 import json
 import os
 from typing import TypedDict, Dict
+
 from utils.image import encode_image_to_base64
 
 from openai import OpenAI
@@ -23,6 +24,33 @@ client_vl = OpenAI(base_url=f"{VLLM_BASE_URL}:8000/v1", api_key="none")
 client_reasoning = OpenAI(base_url=f"{VLLM_BASE_URL}:8001/v1", api_key="none")
 client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none")
 client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none")
+
+_model_name_cache: Dict[str, str] = {}
+
+
+def get_model_name(client: OpenAI) -> str:
+    """Query the vLLM server to get the actual loaded model name (cached after first call)."""
+    key = client.base_url.host + str(client.base_url.port)
+    if key not in _model_name_cache:
+        models = client.models.list()
+        _model_name_cache[key] = models.data[0].id
+    return _model_name_cache[key]
+
+
+def get_all_model_names() -> Dict[str, str]:
+    """Return a mapping of agent role -> resolved model name for all four vLLM servers."""
+    result = {}
+    for label, client in [
+        ("Agent 1 — Visual (port 8000)", client_vl),
+        ("Agent 2 — Analyzer (port 8001)", client_reasoning),
+        ("Agent 3 — Verifier (port 8002)", client_verify),
+        ("Agent 4 — Action (port 8003)", client_action),
+    ]:
+        try:
+            result[label] = get_model_name(client)
+        except Exception as exc:
+            result[label] = f"unavailable ({exc})"
+    return result
 
 def construct_graph():
     workflow = StateGraph(AgentState)
@@ -64,7 +92,7 @@ def _visual_description_node(state: AgentState) -> dict:
     })
 
     response = client_vl.chat.completions.create(
-        model="default",
+        model=get_model_name(client_vl),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
@@ -98,7 +126,7 @@ def _analyzer_node(state: AgentState) -> dict:
     )
 
     response = client_reasoning.chat.completions.create(
-        model="default",
+        model=get_model_name(client_reasoning),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -135,7 +163,7 @@ def _verification_node(state: AgentState) -> dict:
     )
 
     response = client_verify.chat.completions.create(
-        model="default",
+        model=get_model_name(client_verify),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -167,7 +195,7 @@ def _action_plan_node(state: AgentState) -> dict:
     )
 
     response = client_action.chat.completions.create(
-        model="default",
+        model=get_model_name(client_action),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
