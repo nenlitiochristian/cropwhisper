@@ -49,7 +49,34 @@ The entire interaction is a single tap: point your camera at your crop, talk in 
 
 ## Getting Started
 
-> Setup instructions coming soon.
+### Local
+
+1. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Start the Gradio app:
+
+```bash
+python app.py
+```
+
+3. Open the URL shown in your terminal (default: `http://127.0.0.1:7860`).
+
+### Hugging Face Spaces (Gradio)
+
+This repository is now compatible with **Gradio Spaces**.
+
+1. Create a new Space with SDK = **Gradio**.
+2. Push this repository to the Space.
+3. Ensure the Space contains:
+   - `app.py` (entrypoint)
+   - `requirements.txt` (dependencies)
+4. Add runtime secrets if needed (for model/API endpoints).
+
+The app listens on `0.0.0.0` and uses the `PORT` environment variable when available.
 
 ---
 

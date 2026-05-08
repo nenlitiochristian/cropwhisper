@@ -18,10 +18,12 @@ class AgentState(TypedDict):
     action_plan: Dict
     language: str
 
-client_vl = OpenAI(base_url="http://localhost:8000/v1", api_key="none")
-client_reasoning = OpenAI(base_url="http://localhost:8001/v1", api_key="none")
-client_verify = OpenAI(base_url="http://localhost:8002/v1", api_key="none")
-client_action = OpenAI(base_url="http://localhost:8003/v1", api_key="none")
+VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost")
+
+client_vl = OpenAI(base_url=f"{VLLM_BASE_URL}:8000/v1", api_key="none")
+client_reasoning = OpenAI(base_url=f"{VLLM_BASE_URL}:8001/v1", api_key="none")
+client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none")
+client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none")
 
 def construct_graph():
     workflow = StateGraph(AgentState)
