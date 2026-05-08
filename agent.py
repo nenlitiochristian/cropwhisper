@@ -1,10 +1,12 @@
 
 import json
 import os
+from tkinter import END
 from typing import TypedDict, Dict
 from utils.image import encode_image_to_base64
 
 from openai import OpenAI
+from langgraph.graph import StateGraph, END
 
 class AgentState(TypedDict):
     image_path: str
@@ -21,10 +23,31 @@ client_reasoning = OpenAI(base_url="http://localhost:8001/v1", api_key="none")
 client_verify = OpenAI(base_url="http://localhost:8002/v1", api_key="none")
 client_action = OpenAI(base_url="http://localhost:8003/v1", api_key="none")
 
-def visual_description_node(state: AgentState) -> dict:
+def construct_graph():
+    workflow = StateGraph(AgentState)
+    AGENT_1 = "agent_1_visual"
+    AGENT_2 = "agent_2_analyzer"
+    AGENT_3 = "agent_3_verify"
+    AGENT_4 = "agent_4_action"
+
+    workflow.add_node(AGENT_1, _visual_description_node)
+    workflow.add_node(AGENT_2, _analyzer_node)
+    workflow.add_node(AGENT_3, _verification_node)
+    workflow.add_node(AGENT_4, _action_plan_node)
+
+    workflow.set_entry_point(AGENT_1)
+    workflow.add_edge(AGENT_1, AGENT_2)
+    workflow.add_edge(AGENT_2, AGENT_3)
+    workflow.add_edge(AGENT_3, AGENT_4)
+    workflow.add_edge(AGENT_4, END)
+
+    return workflow.compile()
+
+
+def _visual_description_node(state: AgentState) -> dict:
     """Step 1: Vision-Language model describes only what is visible — no context, no interpretation."""
     image_path = state["image_path"]
-    system_prompt = get_prompt("visual")
+    system_prompt = _get_prompt("visual")
 
     user_content = []
     if image_path and os.path.exists(image_path):
@@ -57,12 +80,12 @@ def visual_description_node(state: AgentState) -> dict:
     return {"visual_description": visual_description}
 
 
-def analyzer_node(state: AgentState) -> dict:
+def _analyzer_node(state: AgentState) -> dict:
     """Step 2: Receives Agent 1 output + farmer transcript + RAG context. Produces differential diagnosis."""
     visual = state["visual_description"]
     transcript = state["transcript"]
     region = state["region_context"]
-    system_prompt = get_prompt("analyzer")
+    system_prompt = _get_prompt("analyzer")
 
     user_prompt = (
         f"## Input 1 — Visual Description (from Agent 1)\n"
@@ -91,13 +114,13 @@ def analyzer_node(state: AgentState) -> dict:
     return {"diagnosis": diagnosis}
 
 
-def verification_node(state: AgentState) -> dict:
+def _verification_node(state: AgentState) -> dict:
     """Step 3: Receives all prior outputs. Stress-tests Agent 2's reasoning — does not generate new analysis."""
     visual = state["visual_description"]
     diagnosis = state["diagnosis"]
     transcript = state["transcript"]
     region = state["region_context"]
-    system_prompt = get_prompt("verification")
+    system_prompt = _get_prompt("verification")
 
     user_prompt = (
         f"## Agent 1 — Visual Description (ground truth)\n"
@@ -128,11 +151,11 @@ def verification_node(state: AgentState) -> dict:
     return {"verified_assessment": assessment}
 
 
-def action_plan_node(state: AgentState) -> dict:
+def _action_plan_node(state: AgentState) -> dict:
     """Step 4: Receives ONLY the verified assessment. Translates into farmer-actionable advice."""
     verified = state["verified_assessment"]
     region = state["region_context"]
-    system_prompt = get_prompt("action")
+    system_prompt = _get_prompt("action")
 
     user_prompt = (
         f"## Verified Diagnosis\n"
@@ -159,6 +182,6 @@ def action_plan_node(state: AgentState) -> dict:
 
     return {"action_plan": action_plan}
 
-def get_prompt(name: str) -> str:
+def _get_prompt(name: str) -> str:
     with open(f"prompts/{name}.md", "r") as f:
         return f.read()

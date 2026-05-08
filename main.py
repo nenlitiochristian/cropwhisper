@@ -1,9 +1,8 @@
 import os
 import shutil
 from typing import Optional
-from agent import AgentState, visual_description_node, analyzer_node, verification_node, action_plan_node
+from agent import AgentState, construct_graph
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from langgraph.graph import StateGraph, END
 from supabase import create_client, Client
 
 # Supabase Configuration
@@ -12,25 +11,7 @@ SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
 supabase: Client | None = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
 
 # --- Graph Construction ---
-workflow = StateGraph(AgentState)
-
-AGENT_1 = "agent_1_visual"
-AGENT_2 = "agent_2_analyzer"
-AGENT_3 = "agent_3_verify"
-AGENT_4 = "agent_4_action"
-
-workflow.add_node(AGENT_1, visual_description_node)
-workflow.add_node(AGENT_2, analyzer_node)
-workflow.add_node(AGENT_3, verification_node)
-workflow.add_node(AGENT_4, action_plan_node)
-
-workflow.set_entry_point(AGENT_1)
-workflow.add_edge(AGENT_1, AGENT_2)
-workflow.add_edge(AGENT_2, AGENT_3)
-workflow.add_edge(AGENT_3, AGENT_4)
-workflow.add_edge(AGENT_4, END)
-
-app_graph = workflow.compile()
+app_graph = construct_graph()
 
 # --- FastAPI Implementation ---
 app = FastAPI(title="CropWhisper API")
