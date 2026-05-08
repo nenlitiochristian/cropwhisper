@@ -1,4 +1,8 @@
 import os
+
+from dotenv import load_dotenv
+load_dotenv()
+
 import shutil
 from pathlib import Path
 
@@ -8,9 +12,9 @@ from agent import AgentState, construct_graph
 from supabase import create_client, Client
 
 # Supabase Configuration
-SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
-supabase: Client | None = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
+# SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
+# SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
+# supabase: Client | None = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
 
 # --- Graph Construction ---
 app_graph = construct_graph()
@@ -67,6 +71,7 @@ def _run_report(
 with gr.Blocks(title="CropWhisper") as demo:
     gr.Markdown("# CropWhisper")
     gr.Markdown("Upload a crop image, add transcript and coordinates, then run the 4-agent pipeline.")
+    # gr.Markdown(os.environ.get("VLLM_BASE_URL", "http://localhost"))
 
     with gr.Row():
         with gr.Column(scale=1):

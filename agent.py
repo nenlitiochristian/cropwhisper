@@ -1,7 +1,6 @@
 
 import json
 import os
-from tkinter import END
 from typing import TypedDict, Dict
 from utils.image import encode_image_to_base64
 
