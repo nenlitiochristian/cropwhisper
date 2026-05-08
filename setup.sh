@@ -8,6 +8,7 @@ python3 -m venv crop_env
 source crop_env/bin/activate
 
 # For Windows activate the virtual environment using the following command
+# python -m venv crop_env
 # .\crop_env\Scripts\Activate.ps1
 
 # 3. Install Python dependencies inside the virtual environment
