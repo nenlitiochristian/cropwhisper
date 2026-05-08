@@ -1,6 +1,10 @@
 import argparse
 import json
 import os
+
+from dotenv import load_dotenv
+load_dotenv()
+
 import time
 from datetime import datetime, timezone
 from pathlib import Path
