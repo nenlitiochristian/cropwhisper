@@ -41,34 +41,34 @@ pip install \
 
 # 4. Agents Setup
 
-# Start Agent 1: Visual Description (Qwen2.5-VL-72B)
-docker exec -d rocm bash -c 'vllm serve Qwen/Qwen2.5-VL-72B-Instruct \
-    --host 0.0.0.0 --port 8000 \
-    --gpu-memory-utilization 0.60 \
-    --max-model-len 8192 \
-    --dtype bfloat16 \
-    --trust-remote-code > /tmp/vllm_vl.log 2>&1'
+docker exec -d rocm bash -c 'vllm serve Qwen/Qwen2.5-VL-7B-Instruct \
+  --host 0.0.0.0 --port 8000 \
+  --gpu-memory-utilization 0.15 \
+  --max-model-len 4096 \
+  --max-num-seqs 4 \
+  --dtype bfloat16 \
+  --trust-remote-code > /tmp/vllm_vl.log 2>&1' 
 
-# Start Agent 2: Analyzer (Qwen3-32B-Thinking)
-docker exec -d rocm bash -c 'vllm serve Qwen/Qwen3-32B-Thinking \
-    --host 0.0.0.0 --port 8001 \
-    --gpu-memory-utilization 0.18 \
-    --max-model-len 16384 \
-    --dtype bfloat16 \
-    --trust-remote-code > /tmp/vllm_reasoning.log 2>&1'
+docker exec -d rocm bash -c 'vllm serve Qwen/Qwen3-32B \
+  --host 0.0.0.0 --port 8001 \
+  --gpu-memory-utilization 0.45 \
+  --max-model-len 8192 \
+  --max-num-seqs 4 \
+  --dtype bfloat16 \
+  --trust-remote-code > /tmp/vllm_reasoning.log 2>&1'
 
-# Start Agent 3: Verification (Qwen3-14B-Thinking)
-docker exec -d rocm bash -c 'vllm serve Qwen/Qwen3-14B-Thinking \
-    --host 0.0.0.0 --port 8002 \
-    --gpu-memory-utilization 0.08 \
-    --max-model-len 8192 \
-    --dtype bfloat16 \
-    --trust-remote-code > /tmp/vllm_verify.log 2>&1'
-
-# Start Agent 4: Action (Qwen3-14B)
 docker exec -d rocm bash -c 'vllm serve Qwen/Qwen3-14B \
-    --host 0.0.0.0 --port 8003 \
-    --gpu-memory-utilization 0.08 \
-    --max-model-len 8192 \
-    --dtype bfloat16 \
-    --trust-remote-code > /tmp/vllm_action.log 2>&1'
+  --host 0.0.0.0 --port 8002 \
+  --gpu-memory-utilization 0.20 \
+  --max-model-len 8192 \
+  --max-num-seqs 4 \
+  --dtype bfloat16 \
+  --trust-remote-code > /tmp/vllm_verify.log 2>&1'
+  
+docker exec -d rocm bash -c 'vllm serve Qwen/Qwen3-14B \
+  --host 0.0.0.0 --port 8003 \
+  --gpu-memory-utilization 0.20 \
+  --max-model-len 8192 \
+  --max-num-seqs 4 \
+  --dtype bfloat16 \
+  --trust-remote-code > /tmp/vllm_action.log 2>&1'
