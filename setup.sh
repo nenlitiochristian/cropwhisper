@@ -23,6 +23,7 @@ pip install \
     soundfile \
     librosa \
     sentencepiece \
+    opencv-python-headless \
     vllm==0.17.1
 
 # For windows use the following command to install dependencies
@@ -37,6 +38,7 @@ pip install \
 #     soundfile `
 #     librosa `
 #     sentencepiece `
+#     opencv-python-headless `
 #     vllm==0.17.1
 
 # 4. Agents Setup

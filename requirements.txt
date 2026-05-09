@@ -1,0 +1,12 @@
+langgraph
+supabase
+openai
+gradio
+transformers
+accelerate
+soundfile
+librosa
+sentencepiece
+opencv-python-headless
+python-dotenv
+vllm==0.17.1

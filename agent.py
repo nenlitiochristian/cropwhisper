@@ -10,8 +10,9 @@ from openai import OpenAI
 from langgraph.graph import StateGraph, END
 from supabase import create_client, Client as SupabaseClient
 
+
 class AgentState(TypedDict):
-    image_path: str
+    image_paths: list[str]
     transcript: str
     region_context: Dict
     visual_description: Dict
@@ -20,18 +21,33 @@ class AgentState(TypedDict):
     action_plan: Dict
     language: str
 
+
+class FollowUpState(TypedDict):
+    followup_image_paths: list[str]
+    images_provided_labels: list[str]
+    all_images_submitted: list[str]
+    established_facts: list[str]
+    prior_gaps: list[str]
+    initial_action_plan: dict
+    prior_followup_action: dict
+    region_context: dict
+    generated_prompt: dict
+    adjusted_diagnosis: dict
+    followup_verification: dict
+    followup_action: dict
+
+
 VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost")
 
-client_vl = OpenAI(base_url=f"{VLLM_BASE_URL}:8000/v1", api_key="none")
-client_reasoning = OpenAI(base_url=f"{VLLM_BASE_URL}:8001/v1", api_key="none")
-client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none")
-client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none")
+client_vl = OpenAI(base_url=f"{VLLM_BASE_URL}:8000/v1", api_key="none") #QwenVL-7B-Instruct
+client_reasoning = OpenAI(base_url=f"{VLLM_BASE_URL}:8001/v1", api_key="none") #Qwen3-32B
+client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none") #Qwen3-14B
+client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none") #Qwen3-14B
 
 _model_name_cache: Dict[str, str] = {}
 
-# Lazy Supabase client — initialised once on first RAG call
 _supabase: SupabaseClient | None = None
-_rag_cache: list[dict] | None = None   # cache all 190 rows after first fetch
+_rag_cache: list[dict] | None = None
 
 
 def _get_supabase() -> SupabaseClient | None:
@@ -50,7 +66,15 @@ def _visual_to_text(visual: dict) -> str:
         raw = visual.get("raw_output", "")
         return re.sub(r"```.*?```", "", raw, flags=re.DOTALL)
     parts = []
-    for key in ["lesions_and_anomalies", "color_and_gradients", "distribution_pattern"]:
+    # Keys from disease_visual.md schema (used by RAG seed documents)
+    # AND keys from visual.md schema (used by live Agent 1 output).
+    # Both sets are needed because RAG documents use disease_visual keys
+    # while the live pipeline produces visual.md keys.
+    for key in [
+        "lesions_and_anomalies", "color_and_gradients", "distribution_pattern",
+        "plant_structure", "symptom_distribution", "color_gradients",
+        "soil_condition", "surrounding_environment",
+    ]:
         val = visual.get(key, "")
         if isinstance(val, dict):
             parts.append(" ".join(str(v) for v in val.values()))
@@ -66,7 +90,6 @@ def _rag_lookup(visual: dict, top_k: int = 5) -> list[dict]:
     if sb is None:
         return []
 
-    # Fetch all rows once and cache them
     if _rag_cache is None:
         try:
             _rag_cache = sb.table("rag_documents").select(
@@ -118,6 +141,9 @@ def get_all_model_names() -> Dict[str, str]:
             result[label] = f"unavailable ({exc})"
     return result
 
+
+# ── Initial Pipeline ─────────────────────────────────────────────────────────
+
 def construct_graph():
     workflow = StateGraph(AgentState)
     AGENT_1 = "agent_1_visual"
@@ -140,21 +166,24 @@ def construct_graph():
 
 
 def _visual_description_node(state: AgentState) -> dict:
-    """Step 1: Vision-Language model describes only what is visible — no context, no interpretation."""
-    image_path = state["image_path"]
+    """Step 1: Vision-Language model describes only what is visible."""
+    image_paths = state.get("image_paths") or []
     system_prompt = _get_prompt("visual")
 
     user_content = []
-    if image_path and os.path.exists(image_path):
-        b64_image = encode_image_to_base64(image_path)
-        user_content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"},
-        })
+    for img_path in image_paths:
+        if img_path and os.path.exists(img_path):
+            b64_image = encode_image_to_base64(img_path)
+            user_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"},
+            })
 
+    num = len([p for p in image_paths if p and os.path.exists(p)])
+    text_suffix = "these images" if num > 1 else "this image"
     user_content.append({
         "type": "text",
-        "text": "Describe this image following your instructions exactly.",
+        "text": f"Describe {text_suffix} following your instructions exactly.",
     })
 
     response = client_vl.chat.completions.create(
@@ -182,7 +211,6 @@ def _analyzer_node(state: AgentState) -> dict:
     region = state["region_context"]
     system_prompt = _get_prompt("analyzer")
 
-    # RAG: find similar disease cases from the database
     similar_cases = _rag_lookup(visual)
     rag_db_section = ""
     if similar_cases:
@@ -225,7 +253,7 @@ def _analyzer_node(state: AgentState) -> dict:
 
 
 def _verification_node(state: AgentState) -> dict:
-    """Step 3: Receives all prior outputs. Stress-tests Agent 2's reasoning — does not generate new analysis."""
+    """Step 3: Receives all prior outputs. Stress-tests Agent 2's reasoning."""
     visual = state["visual_description"]
     diagnosis = state["diagnosis"]
     transcript = state["transcript"]
@@ -291,6 +319,204 @@ def _action_plan_node(state: AgentState) -> dict:
         action_plan = {"raw_output": raw, "parse_error": True}
 
     return {"action_plan": action_plan}
+
+
+# ── Follow-Up Pipeline ──────────────────────────────────────────────────────
+
+def construct_followup_graph():
+    workflow = StateGraph(FollowUpState)
+    F1 = "followup_prompt_generator"
+    F2 = "followup_diagnosis_adjuster"
+    F3 = "followup_verification"
+    F4 = "followup_action"
+
+    workflow.add_node(F1, _followup_prompt_generator_node)
+    workflow.add_node(F2, _followup_diagnosis_adjuster_node)
+    workflow.add_node(F3, _followup_verification_node)
+    workflow.add_node(F4, _followup_action_node)
+
+    workflow.set_entry_point(F1)
+    workflow.add_edge(F1, F2)
+    workflow.add_edge(F2, F3)
+    workflow.add_edge(F3, F4)
+    workflow.add_edge(F4, END)
+
+    return workflow.compile()
+
+
+def _followup_prompt_generator_node(state: FollowUpState) -> dict:
+    """F1: Distill cumulative case context into a focused prompt for downstream agents."""
+    system_prompt = _get_prompt("followup_prompt_generator")
+
+    user_prompt = (
+        f"## Established Facts from Prior Analysis\n"
+        f"```json\n{json.dumps(state['established_facts'], indent=2)}\n```\n\n"
+        f"## Prior Gaps / Uncertainties\n"
+        f"```json\n{json.dumps(state['prior_gaps'], indent=2)}\n```\n\n"
+        f"## Initial Action Plan\n"
+        f"```json\n{json.dumps(state['initial_action_plan'], indent=2)}\n```\n\n"
+        f"## Previous Follow-Up Action (if any)\n"
+        f"```json\n{json.dumps(state.get('prior_followup_action') or {}, indent=2)}\n```\n\n"
+        f"## New Evidence Provided by User\n"
+        f"The user has submitted {len(state['followup_image_paths'])} new image(s):\n"
+        f"{json.dumps(state['images_provided_labels'], indent=2)}\n\n"
+        f"## All Images Submitted Across All Rounds\n"
+        f"{json.dumps(state['all_images_submitted'], indent=2)}\n\n"
+        "Generate the focused follow-up prompt now."
+    )
+
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=2048,
+    )
+
+    raw = response.choices[0].message.content
+    try:
+        generated_prompt = json.loads(raw)
+    except json.JSONDecodeError:
+        generated_prompt = {"raw_output": raw, "parse_error": True}
+
+    return {"generated_prompt": generated_prompt}
+
+
+def _followup_diagnosis_adjuster_node(state: FollowUpState) -> dict:
+    """F2: Analyze new evidence images and cross-reference against established facts."""
+    system_prompt = _get_prompt("followup_diagnosis_adjuster")
+
+    # First, get visual descriptions of new images via the VL model
+    image_paths = state.get("followup_image_paths") or []
+    user_vl_content = []
+    for img_path in image_paths:
+        if img_path and os.path.exists(img_path):
+            b64_image = encode_image_to_base64(img_path)
+            user_vl_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"},
+            })
+
+    generated_prompt = state.get("generated_prompt") or {}
+    focus = generated_prompt.get("focus_instruction", "Analyze the new images carefully.")
+
+    user_vl_content.append({
+        "type": "text",
+        "text": (
+            f"Describe what you see in these follow-up images. "
+            f"Focus on: {focus}"
+        ),
+    })
+
+    vl_response = client_vl.chat.completions.create(
+        model=get_model_name(client_vl),
+        messages=[
+            {"role": "system", "content": _get_prompt("visual")},
+            {"role": "user", "content": user_vl_content},
+        ],
+        max_tokens=2048,
+    )
+    new_visual_raw = vl_response.choices[0].message.content
+
+    # Now feed visual output + generated prompt to reasoning model
+    user_prompt = (
+        f"## Generated Prompt from Follow-Up Prompt Generator\n"
+        f"```json\n{json.dumps(generated_prompt, indent=2)}\n```\n\n"
+        f"## Visual Description of New Evidence Images\n"
+        f"{new_visual_raw}\n\n"
+        "Produce your adjusted diagnosis now."
+    )
+
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=2048,
+    )
+
+    raw = response.choices[0].message.content
+    try:
+        adjusted = json.loads(raw)
+    except json.JSONDecodeError:
+        adjusted = {"raw_output": raw, "parse_error": True}
+
+    return {"adjusted_diagnosis": adjusted}
+
+
+def _followup_verification_node(state: FollowUpState) -> dict:
+    """F3: Stress-test the adjusted diagnosis against the evidence chain."""
+    system_prompt = _get_prompt("followup_verification")
+    adjusted = state.get("adjusted_diagnosis") or {}
+    generated_prompt = state.get("generated_prompt") or {}
+
+    user_prompt = (
+        f"## Follow-Up Diagnosis Adjuster Output\n"
+        f"```json\n{json.dumps(adjusted, indent=2)}\n```\n\n"
+        f"## Established Facts (from prior rounds)\n"
+        f"```json\n{json.dumps(state.get('established_facts', []), indent=2)}\n```\n\n"
+        f"## Generated Prompt Context\n"
+        f"```json\n{json.dumps(generated_prompt, indent=2)}\n```\n\n"
+        "Perform your follow-up verification now."
+    )
+
+    response = client_verify.chat.completions.create(
+        model=get_model_name(client_verify),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=2048,
+    )
+
+    raw = response.choices[0].message.content
+    try:
+        verification = json.loads(raw)
+    except json.JSONDecodeError:
+        verification = {"raw_output": raw, "parse_error": True}
+
+    return {"followup_verification": verification}
+
+
+def _followup_action_node(state: FollowUpState) -> dict:
+    """F4: Generate diff-style updates to the original action plan."""
+    system_prompt = _get_prompt("followup_action")
+    verification = state.get("followup_verification") or {}
+    initial_plan = state.get("initial_action_plan") or {}
+    generated_prompt = state.get("generated_prompt") or {}
+    remaining_gaps = generated_prompt.get("remaining_gaps", [])
+
+    user_prompt = (
+        f"## Verified Follow-Up Assessment\n"
+        f"```json\n{json.dumps(verification, indent=2)}\n```\n\n"
+        f"## Original Action Plan\n"
+        f"```json\n{json.dumps(initial_plan, indent=2)}\n```\n\n"
+        f"## Remaining Gaps\n"
+        f"```json\n{json.dumps(remaining_gaps, indent=2)}\n```\n\n"
+        f"## All Images Already Submitted\n"
+        f"```json\n{json.dumps(state.get('all_images_submitted', []), indent=2)}\n```\n\n"
+        "Generate the follow-up action plan diff now."
+    )
+
+    response = client_action.chat.completions.create(
+        model=get_model_name(client_action),
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=2048,
+    )
+
+    raw = response.choices[0].message.content
+    try:
+        followup_action = json.loads(raw)
+    except json.JSONDecodeError:
+        followup_action = {"raw_output": raw, "parse_error": True}
+
+    return {"followup_action": followup_action}
+
 
 def _get_prompt(name: str) -> str:
     with open(f"prompts/{name}.md", "r") as f:
