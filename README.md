@@ -1,3 +1,20 @@
+---
+title: Cropwhisper
+colorFrom: green
+colorTo: purple
+sdk: gradio
+sdk_version: 6.14.0
+python_version: '3.13'
+app_file: app.py
+pinned: false
+short_description: AI assistant for small farmers lacking access to agronomists
+tags:
+  - amd
+  - amd-hackathon-2026
+  - vllm
+  - gradio
+---
+
 # CropWhisper
 
 **AI-Powered Crop Condition Analysis for Smallholder Farmers**
