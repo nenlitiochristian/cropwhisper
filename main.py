@@ -47,20 +47,40 @@ def _haversine(lat1, lon1, lat2, lon2):
     return R * 2 * math.asin(math.sqrt(a))
 
 
-def _find_nearest_location(lat, lon):
+def _find_nearest_location(lat: float, lon: float, max_attempts: int = 20) -> dict:
     if not supabase:
         return {"lat": lat, "lon": lon, "country": "Unknown",
                 "region": "Unknown", "continent": "Unknown"}
-    rows = supabase.table("location").select(
-        "lat,lon,country,region,continent"
-    ).execute().data
+
+    rows = supabase.table("location").select("*").execute().data
     if not rows:
         return {"lat": lat, "lon": lon}
-    nearest = min(rows, key=lambda r: _haversine(lat, lon, r["lat"], r["lon"]))
-    nearest["distance_km"] = round(
-        _haversine(lat, lon, nearest["lat"], nearest["lon"]), 1
-    )
-    return nearest
+
+    rows_sorted = sorted(rows, key=lambda r: _haversine(lat, lon, r["lat"], r["lon"]))
+
+    for row in rows_sorted[:max_attempts]:
+        dist = round(_haversine(lat, lon, row["lat"], row["lon"]), 1)
+
+        if row.get("phh2o") is not None:
+            row["distance_km"] = dist
+            return row
+
+        soil = _get_soil_data(row["lat"], row["lon"])
+
+        if soil.get("error") or soil.get("phh2o") is None:
+            continue
+
+        supabase.table("location").update(
+            {k: v for k, v in soil.items() if v is not None}
+        ).eq("id", row["id"]).execute()
+
+        row.update(soil)
+        row["distance_km"] = dist
+        return row
+
+    fallback = rows_sorted[0]
+    fallback["distance_km"] = round(_haversine(lat, lon, fallback["lat"], fallback["lon"]), 1)
+    return fallback
 
 
 def _get_soil_data(lat, lon):
