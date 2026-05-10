@@ -37,12 +37,11 @@ class FollowUpState(TypedDict):
     followup_action: dict
 
 
-VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost")
+VL_MODEL_ENDPOINT_URL = os.environ.get("VL_MODEL_ENDPOINT_URL", "http://localhost:8000/v1")
+REASONING_MODEL_ENDPOINT_URL = os.environ.get("REASONING_MODEL_ENDPOINT_URL", "http://localhost:8001/v1")
 
-client_vl = OpenAI(base_url=f"{VLLM_BASE_URL}:8000/v1", api_key="none") #QwenVL-7B-Instruct
-client_reasoning = OpenAI(base_url=f"{VLLM_BASE_URL}:8001/v1", api_key="none") #Qwen3-32B
-client_verify = OpenAI(base_url=f"{VLLM_BASE_URL}:8002/v1", api_key="none") #Qwen3-14B
-client_action = OpenAI(base_url=f"{VLLM_BASE_URL}:8003/v1", api_key="none") #Qwen3-14B
+client_vl = OpenAI(base_url=VL_MODEL_ENDPOINT_URL, api_key="none")
+client_reasoning = OpenAI(base_url=REASONING_MODEL_ENDPOINT_URL, api_key="none")
 
 _model_name_cache: Dict[str, str] = {}
 
@@ -132,8 +131,8 @@ def get_all_model_names() -> Dict[str, str]:
     for label, client in [
         ("Agent 1 — Visual (port 8000)", client_vl),
         ("Agent 2 — Analyzer (port 8001)", client_reasoning),
-        ("Agent 3 — Verifier (port 8002)", client_verify),
-        ("Agent 4 — Action (port 8003)", client_action),
+        ("Agent 3 — Verifier (port 8001)", client_reasoning),
+        ("Agent 4 — Action (port 8001)", client_reasoning),
     ]:
         try:
             result[label] = get_model_name(client)
@@ -271,8 +270,8 @@ def _verification_node(state: AgentState) -> dict:
         "Perform your verification now."
     )
 
-    response = client_verify.chat.completions.create(
-        model=get_model_name(client_verify),
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -303,8 +302,8 @@ def _action_plan_node(state: AgentState) -> dict:
         "Generate the action plan for this farmer now."
     )
 
-    response = client_action.chat.completions.create(
-        model=get_model_name(client_action),
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -462,8 +461,8 @@ def _followup_verification_node(state: FollowUpState) -> dict:
         "Perform your follow-up verification now."
     )
 
-    response = client_verify.chat.completions.create(
-        model=get_model_name(client_verify),
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -500,8 +499,8 @@ def _followup_action_node(state: FollowUpState) -> dict:
         "Generate the follow-up action plan diff now."
     )
 
-    response = client_action.chat.completions.create(
-        model=get_model_name(client_action),
+    response = client_reasoning.chat.completions.create(
+        model=get_model_name(client_reasoning),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

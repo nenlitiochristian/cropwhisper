@@ -9,4 +9,3 @@ librosa
 sentencepiece
 opencv-python-headless
 python-dotenv
-vllm==0.17.1

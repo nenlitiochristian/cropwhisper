@@ -1404,11 +1404,26 @@ def _reset_case():
     )
 
 
-# ── Model Info ───────────────────────────────────────────────────────────────
+# ── Agent Status ─────────────────────────────────────────────────────────────
 
-def _refresh_models():
+def _check_agent_status():
+    """Check all agents and return a status HTML bar."""
     names = get_all_model_names()
-    return "\n".join(f"- **{role}**: `{model}`" for role, model in names.items())
+    all_ok = all("unavailable" not in v for v in names.values())
+    if all_ok:
+        dot = '#27ae60'
+        text = 'All agents connected and available'
+    else:
+        dot = '#e74c3c'
+        failed = sum(1 for v in names.values() if "unavailable" in v)
+        text = f'{failed} agent{"s" if failed > 1 else ""} cannot be reached'
+    return (
+        f'<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
+        f'<span style="width:10px;height:10px;border-radius:50%;background:{dot};'
+        f'display:inline-block;flex-shrink:0;box-shadow:0 0 6px {dot}"></span>'
+        f'<span style="font-size:13px;font-weight:500;color:#2d3436">{text}</span>'
+        f'</div>'
+    )
 
 
 # ── Gradio UI ────────────────────────────────────────────────────────────────
@@ -1490,10 +1505,16 @@ with gr.Blocks(
 
     </script>""")
 
-    with gr.Accordion("Model Info", open=False):
-        model_info = gr.Markdown("Click Refresh to query vLLM servers.")
-        refresh_btn = gr.Button("Refresh", size="sm")
-        refresh_btn.click(fn=_refresh_models, inputs=[], outputs=[model_info])
+    with gr.Row(elem_id="cw-status-bar"):
+        agent_status = gr.HTML(
+            value='<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
+                  '<span style="width:10px;height:10px;border-radius:50%;background:#a3b1c6;'
+                  'display:inline-block;flex-shrink:0"></span>'
+                  '<span style="font-size:13px;font-weight:500;color:#636e72">'
+                  'Click refresh to check agent status</span></div>'
+        )
+        status_refresh_btn = gr.Button("Refresh", size="sm", elem_id="cw-status-refresh")
+        status_refresh_btn.click(fn=_check_agent_status, inputs=[], outputs=[agent_status])
 
     with gr.Row():
         # ── Left Column: Inputs ──

@@ -36,8 +36,8 @@ def parse_label(folder_name: str) -> dict[str, str]:
 
 
 def build_visual_client() -> OpenAI:
-    base = os.environ.get("VLLM_BASE_URL", "http://localhost")
-    return OpenAI(base_url=f"{base}:8000/v1", api_key="none")
+    url = os.environ.get("VL_MODEL_ENDPOINT_URL", "http://localhost:8000/v1")
+    return OpenAI(base_url=url, api_key="none")
 
 
 def resolve_model_name(client: OpenAI) -> str:
