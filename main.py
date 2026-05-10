@@ -149,11 +149,10 @@ def _derive_soil_from_answers(answers):
     return soil
 
 
-def _nm_wrap(inner_html):
+def _panel_wrap(inner_html):
     return (
-        '<div style="height:82vh;overflow-y:auto;background:#e0e5ec;'
-        'border-radius:16px;box-shadow:inset 4px 4px 8px #a3b1c6,inset -4px -4px 8px #fff;'
-        'padding:6px;">'
+        '<div style="height:82vh;overflow-y:auto;background:#ffffff;'
+        'border:1px solid #e2e8f0;border-radius:10px;padding:6px;">'
         f'{inner_html}'
         '</div>'
     )
@@ -169,16 +168,16 @@ def _format_soil_card(location, soil, source="database"):
 
     if source == "database":
         dist_line = (
-            f'<div style="font-size:12px;color:#e67e22;margin:4px 0 6px;'
+            f'<div style="font-size:12px;color:#ea580c;margin:4px 0 6px;'
             f'display:flex;align-items:center;gap:4px">'
             f'{ICON["alert"]}'
             f'Data from nearest grid point, <strong>{dist} km</strong> from your location'
             f'</div>'
         ) if dist else ""
         disclaimer = (
-            '<div style="font-size:11px;color:#888;background:#d4d9e0;padding:8px 10px;'
+            '<div style="font-size:11px;color:#6b7280;background:#f0fdf4;padding:8px 10px;'
             'border-radius:8px;margin-bottom:10px;line-height:1.5;'
-            'box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff">'
+            'border:1px solid #bbf7d0">'
             'This soil data is from the ISRIC SoilGrids global database and represents '
             'natural soil conditions. It may not reflect the actual soil in your farm or garden.'
             '</div>'
@@ -186,9 +185,9 @@ def _format_soil_card(location, soil, source="database"):
     else:
         dist_line = ""
         disclaimer = (
-            '<div style="font-size:11px;color:#4a7a4a;background:#d4d9e0;'
+            '<div style="font-size:11px;color:#166534;background:#f0fdf4;'
             'padding:8px 10px;border-radius:8px;margin-bottom:10px;line-height:1.5;'
-            'box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff">'
+            'border:1px solid #bbf7d0">'
             'Soil profile estimated from your answers.'
             '</div>'
         )
@@ -202,30 +201,30 @@ def _format_soil_card(location, soil, source="database"):
         )
         rows += (
             f'<div style="display:flex;justify-content:space-between;padding:6px 0;'
-            f'border-bottom:1px solid rgba(74,122,74,0.12)">'
-            f'<span style="color:#636e72;font-size:13px">{label}</span>'
-            f'<span style="font-weight:600;color:#4a7a4a;font-size:13px">'
+            f'border-bottom:1px solid #e2e8f0">'
+            f'<span style="color:#6b7280;font-size:13px">{label}</span>'
+            f'<span style="font-weight:600;color:#16a34a;font-size:13px">'
             f'{display}</span>'
             f'</div>'
         )
 
     return (
-        f'<div style="background:#e0e5ec;border-radius:14px;'
-        f'box-shadow:6px 6px 12px #a3b1c6,-6px -6px 12px #fff;'
+        f'<div style="background:#ffffff;border-radius:10px;'
+        f'border:1px solid #e2e8f0;'
         f'padding:18px 20px;margin-bottom:18px">'
         f'  <div style="display:flex;align-items:center;gap:6px;font-size:11px;'
         f'font-weight:700;text-transform:uppercase;letter-spacing:1px;'
-        f'color:#636e72;margin-bottom:6px">'
+        f'color:#6b7280;margin-bottom:6px">'
         f'    {ICON["map_pin"]} Location &amp; Soil Context</div>'
-        f'  <div style="font-size:15px;font-weight:600;color:#4a7a4a;'
+        f'  <div style="font-size:15px;font-weight:600;color:#16a34a;'
         f'margin-bottom:2px">{country}</div>'
-        f'  <div style="font-size:12px;color:#636e72;margin-bottom:4px">'
+        f'  <div style="font-size:12px;color:#6b7280;margin-bottom:4px">'
         f'    {region} &middot; {continent}</div>'
         f'  {dist_line}'
         f'  {disclaimer}'
         f'  <div style="display:flex;align-items:center;gap:6px;font-size:11px;'
         f'font-weight:700;text-transform:uppercase;letter-spacing:1px;'
-        f'color:#636e72;margin:10px 0 6px">'
+        f'color:#6b7280;margin:10px 0 6px">'
         f'    {ICON["sprout"]} Soil (0-5 cm depth)</div>'
         f'  {rows}'
         f'</div>'
@@ -244,50 +243,49 @@ def _soil_question_html(q_index, answers_so_far=None):
     options_html = ""
     for i, (label, _value) in enumerate(q["options"]):
         options_html += (
-            f'<div style="background:#e0e5ec;border-radius:12px;'
-            f'box-shadow:4px 4px 8px #a3b1c6,-4px -4px 8px #fff;'
+            f'<div style="background:#ffffff;border-radius:8px;'
+            f'border:1px solid #e2e8f0;'
             f'padding:14px 18px;margin-bottom:10px;cursor:pointer;'
             f'transition:all 0.15s ease;font-size:15px;font-weight:500;'
-            f'color:#2d3436;display:flex;align-items:center;gap:10px"'
+            f'color:#111827;display:flex;align-items:center;gap:10px"'
             f' onclick="(function(el){{'
-            f'el.style.boxShadow=\'inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff\';'
-            f'el.style.color=\'#4a7a4a\';'
-            f'el.querySelector(\'.soil-opt-circle\').style.background=\'linear-gradient(135deg,#4a7a4a,#6da86d)\';'
+            f'el.style.border=\'2px solid #16a34a\';'
+            f'el.style.color=\'#16a34a\';'
+            f'el.querySelector(\'.soil-opt-circle\').style.background=\'#16a34a\';'
             f'el.querySelector(\'.soil-opt-circle\').style.color=\'#fff\';'
-            f'el.querySelector(\'.soil-opt-circle\').style.boxShadow=\'none\';'
+            f'el.querySelector(\'.soil-opt-circle\').style.border=\'none\';'
             f'setTimeout(function(){{var r=document.querySelector(\'#soil-opts-row\');'
             f'if(r){{var btns=r.querySelectorAll(\'button\');if(btns[{i}])btns[{i}].click();}}}},250);'
             f'}})(this)"'
-            f' onmouseover="this.style.boxShadow=\'6px 6px 14px #a3b1c6,-6px -6px 14px #fff\'"'
-            f' onmouseout="this.style.boxShadow=\'4px 4px 8px #a3b1c6,-4px -4px 8px #fff\'">'
+            f' onmouseover="this.style.borderColor=\'#bbf7d0\';this.style.background=\'#f0fdf4\'"'
+            f' onmouseout="this.style.borderColor=\'#e2e8f0\';this.style.background=\'#ffffff\'">'
             f'<span class="soil-opt-circle" style="width:32px;height:32px;border-radius:50%;'
-            f'background:#e0e5ec;box-shadow:inset 2px 2px 4px #a3b1c6,'
-            f'inset -2px -2px 4px #fff;display:flex;align-items:center;'
-            f'justify-content:center;font-size:13px;color:#4a7a4a;font-weight:700;'
+            f'background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;'
+            f'justify-content:center;font-size:13px;color:#16a34a;font-weight:700;'
             f'flex-shrink:0;transition:all 0.2s ease">'
             f'{chr(65 + i)}</span>'
             f'{label}'
             f'</div>'
         )
 
-    return _nm_wrap(
+    return _panel_wrap(
         f'<div style="padding:24px;animation:fadeSlideIn 0.3s ease">'
         f'  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
-        f'    <span style="color:#4a7a4a">{ICON["sprout"]}</span>'
+        f'    <span style="color:#16a34a">{ICON["sprout"]}</span>'
         f'    <div>'
-        f'      <div style="font-weight:700;font-size:16px;color:#2d3436">'
+        f'      <div style="font-weight:700;font-size:16px;color:#111827">'
         f'        Tell us about your soil</div>'
-        f'      <div style="font-size:12px;color:#636e72">'
+        f'      <div style="font-size:12px;color:#6b7280">'
         f'        Question {q_index + 1} of {total}</div>'
         f'    </div>'
         f'  </div>'
-        f'  <div style="background:#d4d9e0;border-radius:6px;height:6px;margin-bottom:24px;'
-        f'box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff">'
-        f'    <div style="background:linear-gradient(90deg,#4a7a4a,#6da86d);'
+        f'  <div style="background:#f8faf8;border-radius:6px;height:6px;margin-bottom:24px;'
+        f'border:1px solid #e2e8f0">'
+        f'    <div style="background:#16a34a;'
         f'width:{progress_pct}%;height:100%;border-radius:6px;'
         f'transition:width 0.4s ease"></div>'
         f'  </div>'
-        f'  <div style="font-size:18px;font-weight:600;color:#2d3436;margin-bottom:20px;'
+        f'  <div style="font-size:18px;font-weight:600;color:#111827;margin-bottom:20px;'
         f'line-height:1.4">{q["question"]}</div>'
         f'  {options_html}'
         f'</div>'
@@ -301,8 +299,13 @@ def _extract_text(agent_id, data):
     payload = data.get(key, data)
     if isinstance(payload, dict) and payload.get("parse_error"):
         raw = payload.get("raw_output", "")
-        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-        return raw
+        parsed = _robust_json(raw)
+        if parsed:
+            return _format_agent_output(agent_id, parsed)
+        clean = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+        clean = re.sub(r"```(?:json)?\s*", "", clean)
+        clean = re.sub(r"```\s*$", "", clean).strip()
+        return clean
     return _format_agent_output(agent_id, payload)
 
 
@@ -420,44 +423,42 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
     subtitle = pre_step if pre_step else f"Step {step} of 4 complete"
     h.append(
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-        f'  <span style="color:#4a7a4a">{ICON["leaf"]}</span>'
+        f'  <span style="color:#16a34a">{ICON["leaf"]}</span>'
         f'  <div>'
-        f'    <div style="font-weight:700;font-size:16px;color:#2d3436">'
+        f'    <div style="font-weight:700;font-size:16px;color:#111827">'
         f'      Analyzing your crop</div>'
-        f'    <div style="font-size:12px;color:#636e72;margin-top:2px">'
+        f'    <div style="font-size:12px;color:#6b7280;margin-top:2px">'
         f'      {subtitle}</div>'
         f'  </div>'
         f'</div>'
     )
 
-    # Neuromorphic progress bar
     h.append(
-        f'<div style="background:#e0e5ec;border-radius:8px;height:8px;'
-        f'margin-bottom:24px;box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff">'
-        f'  <div style="background:linear-gradient(90deg,#4a7a4a,#6da86d);'
+        f'<div style="background:#f8faf8;border-radius:8px;height:8px;'
+        f'margin-bottom:24px;border:1px solid #e2e8f0">'
+        f'  <div style="background:#16a34a;'
         f'width:{pct}%;height:100%;border-radius:8px;transition:width 0.6s ease"></div>'
         f'</div>'
     )
 
-    # Step indicators
     h.append('<div style="display:flex;gap:8px;margin-bottom:20px">')
     for i, agent_id in enumerate(AGENT_ORDER):
         icon, label = AGENT_META[agent_id]
         done = agent_id in completed
         active = agent_id == running or (streaming and streaming[0] == agent_id)
         style_bg = (
-            "background:linear-gradient(135deg,#4a7a4a,#6da86d);color:#fff;"
-            "box-shadow:3px 3px 6px #a3b1c6,-3px -3px 6px #fff;"
+            "background:#16a34a;color:#fff;"
+            "border:1px solid #16a34a;"
             if done else
-            ("background:#e0e5ec;color:#4a7a4a;"
-             "box-shadow:3px 3px 6px #a3b1c6,-3px -3px 6px #fff;"
+            ("background:#f0fdf4;color:#16a34a;"
+             "border:1px solid #bbf7d0;"
              if active else
-             "background:#e0e5ec;color:#bbb;"
-             "box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff;")
+             "background:#f8faf8;color:#bbb;"
+             "border:1px solid #e2e8f0;")
         )
         pulse = '<span class="pulse-indicator"></span>' if active else ""
         h.append(
-            f'<div style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;'
+            f'<div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;'
             f'font-size:11px;font-weight:600;transition:all 0.3s ease;{style_bg}">'
             f'{label}{pulse}'
             f'</div>'
@@ -475,9 +476,9 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
             if is_running:
                 h.append(
                     f'<div style="display:flex;align-items:center;gap:8px;padding:12px 16px;'
-                    f'background:#e0e5ec;border-radius:12px;'
-                    f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
-                    f'color:#4a7a4a;font-weight:600">'
+                    f'background:#f0fdf4;border-radius:8px;'
+                    f'border:1px solid #bbf7d0;'
+                    f'color:#16a34a;font-weight:600">'
                     f'{icon} {label}<span class="pulse-indicator"></span>'
                     f'</div>'
                 )
@@ -490,23 +491,23 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
                 else '<span class="typewriter-cursor">|</span>'
             )
             check = (
-                f'<span style="color:#27ae60">'
+                f'<span style="color:#16a34a">'
                 f'{ICON["check_circle"]}</span>'
                 if is_done else
-                f'<span style="color:#4a7a4a">{icon}</span>'
+                f'<span style="color:#16a34a">{icon}</span>'
             )
             anim = 'animation:fadeSlideIn 0.35s ease;' if is_done else ''
             h.append(
                 f'<div style="margin-bottom:14px;{anim}">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
                 f'    {check}'
-                f'    <span style="font-weight:600;color:#2d3436;'
+                f'    <span style="font-weight:600;color:#111827;'
                 f'font-size:14px">{label}</span>'
                 f'  </div>'
-                f'  <div style="background:#e0e5ec;border-radius:10px;'
-                f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
+                f'  <div style="background:#f8faf8;border-radius:8px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;font-family:\'Inter\',monospace;font-size:12px;'
-                f'line-height:1.7;color:#2d3436;'
+                f'line-height:1.7;color:#111827;'
                 f'white-space:pre-wrap;max-height:180px;overflow-y:auto">'
                 f'{text}{cursor}'
                 f'  </div>'
@@ -516,13 +517,13 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
             h.append(
                 f'<div style="margin-bottom:14px">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-                f'    <span style="color:#4a7a4a">{icon}</span>'
-                f'    <span style="font-weight:600;color:#2d3436;'
+                f'    <span style="color:#16a34a">{icon}</span>'
+                f'    <span style="font-weight:600;color:#111827;'
                 f'font-size:14px">{label}</span>'
                 f'    <span class="pulse-indicator"></span>'
                 f'  </div>'
-                f'  <div style="background:#e0e5ec;border-radius:10px;'
-                f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
+                f'  <div style="background:#f8faf8;border-radius:8px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;color:#bbb;font-size:12px">'
                 f'    <span class="typewriter-cursor">|</span>'
                 f'  </div>'
@@ -538,22 +539,45 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
             )
 
     h.append('</div>')
-    return _nm_wrap("".join(h))
+    return _panel_wrap("".join(h))
 
 
 # ── Action Plan Formatter ────────────────────────────────────────────────────
 
+def _robust_json(raw: str | None) -> dict | None:
+    """Best-effort JSON extraction from LLM text (think tags, code fences)."""
+    if not raw:
+        return None
+    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = re.sub(r"```(?:json)?\s*", "", text).strip()
+    text = re.sub(r"```\s*$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{[\s\S]*\}", text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+    return None
+
+
 def _format_action_plan(plan, soil_card=""):
     if plan.get("parse_error"):
         raw = plan.get("raw_output", "")
-        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-        try:
-            plan = json.loads(raw)
-        except json.JSONDecodeError:
-            return _nm_wrap(
+        parsed = _robust_json(raw)
+        if parsed:
+            plan = parsed
+        else:
+            clean = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+            clean = re.sub(r"```(?:json)?\s*", "", clean)
+            clean = re.sub(r"```\s*$", "", clean).strip()
+            return _panel_wrap(
                 soil_card
                 + f'<div style="padding:20px;white-space:pre-wrap;'
-                f'color:#2d3436">{raw}</div>'
+                f'color:#111827">{clean}</div>'
             )
 
     h = ['<div style="padding:20px;font-family:inherit;animation:fadeSlideIn 0.4s ease">']
@@ -564,14 +588,14 @@ def _format_action_plan(plan, soil_card=""):
     condition = plan.get("condition", "")
     if condition:
         h.append(
-            f'<div style="background:#e0e5ec;border-radius:14px;'
-            f'box-shadow:6px 6px 12px #a3b1c6,-6px -6px 12px #fff;'
+            f'<div style="background:#ffffff;border-radius:10px;'
+            f'border:1px solid #e2e8f0;'
             f'padding:16px 20px;margin-bottom:18px">'
             f'<div style="font-size:11px;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:1px;color:#636e72;margin-bottom:6px">'
+            f'letter-spacing:1px;color:#6b7280;margin-bottom:6px">'
             f'Crop Condition</div>'
             f'<div style="font-size:18px;font-weight:700;'
-            f'color:#4a7a4a">{condition}</div>'
+            f'color:#16a34a">{condition}</div>'
             f'</div>'
         )
 
@@ -579,10 +603,10 @@ def _format_action_plan(plan, soil_card=""):
         h.append(
             f'<div style="display:flex;align-items:center;gap:8px;margin-top:24px;'
             f'margin-bottom:12px;padding-bottom:8px;'
-            f'border-bottom:2px solid rgba(74,122,74,0.15)">'
-            f'<span style="color:#4a7a4a">{icon_html}</span>'
+            f'border-bottom:2px solid #bbf7d0">'
+            f'<span style="color:#16a34a">{icon_html}</span>'
             f'<span style="font-size:16px;font-weight:700;'
-            f'color:#2d3436">{title}</span>'
+            f'color:#111827">{title}</span>'
             f'</div>'
         )
 
@@ -591,10 +615,10 @@ def _format_action_plan(plan, soil_card=""):
         section(ICON["zap"], "Immediate Actions")
         for item in immediate:
             h.append(
-                f'<div style="background:#e0e5ec;border-radius:12px;'
-                f'box-shadow:4px 4px 8px #a3b1c6,-4px -4px 8px #fff;'
+                f'<div style="background:#ffffff;border-radius:8px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;margin-bottom:10px">'
-                f'<div style="font-weight:600;color:#4a7a4a;'
+                f'<div style="font-weight:600;color:#16a34a;'
                 f'margin-bottom:6px">'
                 f'{item.get("priority", "")}. {item.get("action", "")}</div>'
             )
@@ -605,7 +629,7 @@ def _format_action_plan(plan, soil_card=""):
                 if item.get(key):
                     h.append(
                         f'<div style="margin:3px 0;font-size:13px">'
-                        f'<span style="font-weight:600;color:#636e72">'
+                        f'<span style="font-weight:600;color:#6b7280">'
                         f'{lbl}:</span> {item[key]}</div>'
                     )
             h.append('</div>')
@@ -616,8 +640,8 @@ def _format_action_plan(plan, soil_card=""):
         for m in monitor:
             h.append(
                 f'<div style="display:flex;align-items:flex-start;gap:8px;'
-                f'margin:6px 0;font-size:13px;color:#2d3436">'
-                f'<span style="color:#4a7a4a;margin-top:2px">'
+                f'margin:6px 0;font-size:13px;color:#111827">'
+                f'<span style="color:#16a34a;margin-top:2px">'
                 f'{ICON["arrow_right"]}</span>{m}</div>'
             )
 
@@ -626,16 +650,16 @@ def _format_action_plan(plan, soil_card=""):
         section(ICON["refresh"], "Regular Practices")
         for p in practices:
             h.append(
-                f'<div style="background:#e0e5ec;border-radius:10px;'
-                f'box-shadow:3px 3px 6px #a3b1c6,-3px -3px 6px #fff;'
+                f'<div style="background:#ffffff;border-radius:10px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:12px 14px;margin-bottom:8px">'
                 f'<div style="font-weight:600;font-size:13px;'
-                f'color:#2d3436">'
+                f'color:#111827">'
                 f'{p.get("frequency", "")}: {p.get("action", "")}</div>'
             )
             if p.get("why"):
                 h.append(
-                    f'<div style="font-size:12px;color:#636e72;'
+                    f'<div style="font-size:12px;color:#6b7280;'
                     f'margin-top:4px;font-style:italic">{p["why"]}</div>'
                 )
             h.append('</div>')
@@ -646,7 +670,7 @@ def _format_action_plan(plan, soil_card=""):
         for d in do_not:
             h.append(
                 f'<div style="display:flex;align-items:flex-start;gap:8px;'
-                f'margin:6px 0;font-size:13px;color:#c0392b">'
+                f'margin:6px 0;font-size:13px;color:#dc2626">'
                 f'{ICON["x_circle"]} {d}</div>'
             )
 
@@ -654,10 +678,9 @@ def _format_action_plan(plan, soil_card=""):
     if seek_help:
         section(ICON["hospital"], "When to Seek Further Help")
         h.append(
-            f'<div style="background:#e0e5ec;border-radius:10px;padding:12px 14px;'
-            f'border-left:4px solid #e67e22;'
-            f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
-            f'font-size:13px;color:#2d3436;line-height:1.5">{seek_help}</div>'
+            f'<div style="background:#f8faf8;border-radius:8px;padding:12px 14px;'
+            f'border:1px solid #e2e8f0;border-left:4px solid #ea580c;'
+            f'font-size:13px;color:#111827;line-height:1.5">{seek_help}</div>'
         )
 
     # Additional evidence suggestion
@@ -666,27 +689,27 @@ def _format_action_plan(plan, soil_card=""):
         sug_text = suggestion.get("suggestion_text", "")
         requested = suggestion.get("requested_images", [])
         h.append(
-            f'<div style="margin-top:24px;background:#e0e5ec;'
-            f'border-radius:14px;box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
-            f'padding:18px 20px;border-left:3px solid #4a7a4a">'
+            f'<div style="margin-top:24px;background:#ffffff;'
+            f'border-radius:10px;border:1px solid #e2e8f0;'
+            f'padding:18px 20px;border-left:3px solid #16a34a">'
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-            f'  <span style="color:#4a7a4a">{ICON["camera"]}</span>'
-            f'  <span style="font-weight:700;font-size:14px;color:#4a7a4a">'
+            f'  <span style="color:#16a34a">{ICON["camera"]}</span>'
+            f'  <span style="font-weight:700;font-size:14px;color:#16a34a">'
             f'    Want better results?</span>'
             f'</div>'
-            f'<div style="font-size:14px;color:#2d3436;margin-bottom:12px;'
+            f'<div style="font-size:14px;color:#111827;margin-bottom:12px;'
             f'line-height:1.5">{sug_text}</div>'
         )
         if requested:
             h.append('<div style="display:flex;flex-wrap:wrap;gap:8px">')
             for img_req in requested:
                 h.append(
-                    f'<div style="background:#e0e5ec;border-radius:8px;'
-                    f'box-shadow:3px 3px 6px #a3b1c6,-3px -3px 6px #fff;'
+                    f'<div style="background:#ffffff;border-radius:8px;'
+                    f'border:1px solid #e2e8f0;'
                     f'padding:8px 12px;font-size:12px">'
-                    f'<div style="font-weight:600;color:#4a7a4a">'
+                    f'<div style="font-weight:600;color:#16a34a">'
                     f'{img_req.get("description", "")}</div>'
-                    f'<div style="color:#636e72;margin-top:2px">'
+                    f'<div style="color:#6b7280;margin-top:2px">'
                     f'{img_req.get("reason", "")}</div>'
                     f'</div>'
                 )
@@ -694,7 +717,7 @@ def _format_action_plan(plan, soil_card=""):
         h.append('</div>')
 
     h.append('</div>')
-    return _nm_wrap("".join(h))
+    return _panel_wrap("".join(h))
 
 
 # ── Follow-Up Report Formatter ───────────────────────────────────────────────
@@ -702,24 +725,27 @@ def _format_action_plan(plan, soil_card=""):
 def _format_followup_report(followup_action, round_num=1):
     if followup_action.get("parse_error"):
         raw = followup_action.get("raw_output", "")
-        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-        try:
-            followup_action = json.loads(raw)
-        except json.JSONDecodeError:
-            return _nm_wrap(
-                f'<div style="padding:20px;white-space:pre-wrap">{raw}</div>'
+        parsed = _robust_json(raw)
+        if parsed:
+            followup_action = parsed
+        else:
+            clean = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+            clean = re.sub(r"```(?:json)?\s*", "", clean)
+            clean = re.sub(r"```\s*$", "", clean).strip()
+            return _panel_wrap(
+                f'<div style="padding:20px;white-space:pre-wrap">{clean}</div>'
             )
 
     h = ['<div style="padding:20px;font-family:inherit;animation:fadeSlideIn 0.4s ease">']
 
     h.append(
-        f'<div style="background:linear-gradient(135deg,#e0e5ec,#d5dae1);'
-        f'border-radius:14px;box-shadow:6px 6px 12px #a3b1c6,-6px -6px 12px #fff;'
+        f'<div style="background:#f0fdf4;'
+        f'border-radius:10px;border:1px solid #e2e8f0;'
         f'padding:16px 20px;margin-bottom:18px">'
         f'<div style="font-size:11px;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:1px;color:#636e72;margin-bottom:4px">'
+        f'letter-spacing:1px;color:#6b7280;margin-bottom:4px">'
         f'Follow-Up Report (Round {round_num})</div>'
-        f'<div style="font-size:15px;font-weight:600;color:#2d3436">'
+        f'<div style="font-size:15px;font-weight:600;color:#111827">'
         f'{followup_action.get("updated_condition", followup_action.get("summary_statement", ""))}'
         f'</div></div>'
     )
@@ -727,28 +753,27 @@ def _format_followup_report(followup_action, round_num=1):
     summary = followup_action.get("summary_statement", "")
     if summary:
         h.append(
-            f'<div style="background:#e0e5ec;border-radius:10px;padding:14px 16px;'
-            f'border-left:4px solid #e67e22;margin-bottom:18px;'
-            f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
+            f'<div style="background:#f8faf8;border-radius:8px;padding:14px 16px;'
+            f'border:1px solid #e2e8f0;border-left:4px solid #ea580c;margin-bottom:18px;'
             f'font-size:14px;font-weight:500;line-height:1.5;'
-            f'color:#2d3436">{summary}</div>'
+            f'color:#111827">{summary}</div>'
         )
 
     changes = followup_action.get("changes_to_initial_plan", [])
     change_type_style = {
-        "CONTRADICT": (ICON["x_circle"], "#c0392b", "CHANGED"),
-        "MODIFY": (ICON["diff_edit"], "#e65100", "MODIFIED"),
-        "ADD": (ICON["diff_plus"], "#2e7d32", "NEW"),
-        "REMOVE": (ICON["diff_minus"], "#c62828", "REMOVED"),
-        "KEEP": (ICON["check_circle"], "#4a7a4a", "UNCHANGED"),
+        "CONTRADICT": (ICON["x_circle"], "#dc2626", "CHANGED"),
+        "MODIFY": (ICON["diff_edit"], "#ea580c", "MODIFIED"),
+        "ADD": (ICON["diff_plus"], "#16a34a", "NEW"),
+        "REMOVE": (ICON["diff_minus"], "#dc2626", "REMOVED"),
+        "KEEP": (ICON["check_circle"], "#16a34a", "UNCHANGED"),
     }
 
     if changes:
         h.append(
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;'
-            f'padding-bottom:8px;border-bottom:2px solid rgba(74,122,74,0.15)">'
+            f'padding-bottom:8px;border-bottom:2px solid #bbf7d0">'
             f'<span style="font-size:16px;font-weight:700;'
-            f'color:#2d3436">Changes to Action Plan</span></div>'
+            f'color:#111827">Changes to Action Plan</span></div>'
         )
         for change in changes:
             ct = change.get("change_type", "KEEP")
@@ -757,18 +782,18 @@ def _format_followup_report(followup_action, round_num=1):
             )
             is_contradict = ct == "CONTRADICT"
             border_style = f"border-left:4px solid {color};" if is_contradict else ""
-            bg = "#e0e5ec"
+            bg = "#ffffff"
 
             h.append(
-                f'<div style="background:{bg};border-radius:12px;{border_style}'
-                f'box-shadow:4px 4px 8px #a3b1c6,-4px -4px 8px #fff;'
+                f'<div style="background:{bg};border-radius:8px;{border_style}'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;margin-bottom:10px">'
                 f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
                 f'  {icon_html}'
                 f'  <span style="background:{color};color:#fff;padding:2px 8px;'
                 f'border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px">'
                 f'{badge_text}</span>'
-                f'  <span style="font-size:12px;color:#636e72">'
+                f'  <span style="font-size:12px;color:#6b7280">'
                 f'{change.get("section", "")}</span>'
                 f'</div>'
             )
@@ -780,12 +805,12 @@ def _format_followup_report(followup_action, round_num=1):
             if change.get("updated_recommendation"):
                 h.append(
                     f'<div style="font-size:14px;font-weight:{"700" if is_contradict else "500"};'
-                    f'color:{color if is_contradict else "#2d3436"};'
+                    f'color:{color if is_contradict else "#111827"};'
                     f'line-height:1.5">{change["updated_recommendation"]}</div>'
                 )
             if change.get("reason"):
                 h.append(
-                    f'<div style="font-size:12px;color:#636e72;'
+                    f'<div style="font-size:12px;color:#6b7280;'
                     f'margin-top:4px;font-style:italic">{change["reason"]}</div>'
                 )
             h.append('</div>')
@@ -796,25 +821,25 @@ def _format_followup_report(followup_action, round_num=1):
         sug_text = suggestion.get("suggestion_text", "")
         requested = suggestion.get("requested_images", [])
         h.append(
-            f'<div style="margin-top:20px;background:#e0e5ec;'
-            f'border-radius:14px;box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
-            f'padding:18px 20px;border-left:3px solid #4a7a4a">'
+            f'<div style="margin-top:20px;background:#ffffff;'
+            f'border-radius:10px;border:1px solid #e2e8f0;'
+            f'padding:18px 20px;border-left:3px solid #16a34a">'
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-            f'  <span style="color:#4a7a4a">{ICON["camera"]}</span>'
+            f'  <span style="color:#16a34a">{ICON["camera"]}</span>'
             f'  <span style="font-weight:700;font-size:14px;'
-            f'color:#4a7a4a">Still need more info?</span>'
+            f'color:#16a34a">Still need more info?</span>'
             f'</div>'
-            f'<div style="font-size:13px;color:#2d3436;'
+            f'<div style="font-size:13px;color:#111827;'
             f'margin-bottom:10px">{sug_text}</div>'
         )
         if requested:
             h.append('<div style="display:flex;flex-wrap:wrap;gap:8px">')
             for img_req in requested:
                 h.append(
-                    f'<div style="background:#e0e5ec;border-radius:8px;'
-                    f'box-shadow:3px 3px 6px #a3b1c6,-3px -3px 6px #fff;'
+                    f'<div style="background:#ffffff;border-radius:8px;'
+                    f'border:1px solid #e2e8f0;'
                     f'padding:8px 12px;font-size:12px">'
-                    f'<strong style="color:#4a7a4a">'
+                    f'<strong style="color:#16a34a">'
                     f'{img_req.get("description", "")}</strong>'
                     f'</div>'
                 )
@@ -822,7 +847,7 @@ def _format_followup_report(followup_action, round_num=1):
         h.append('</div>')
 
     h.append('</div>')
-    return _nm_wrap("".join(h))
+    return _panel_wrap("".join(h))
 
 
 
@@ -840,7 +865,7 @@ def _soil_preview_html(location, soil):
     if dist:
         dist_line = (
             f'<div style="display:flex;align-items:center;gap:6px;font-size:13px;'
-            f'color:#e67e22;margin:6px 0 10px">'
+            f'color:#ea580c;margin:6px 0 10px">'
             f'{ICON["alert"]} Data from nearest grid point, '
             f'<strong>{dist} km</strong> from your location</div>'
         )
@@ -850,47 +875,47 @@ def _soil_preview_html(location, soil):
         val = soil.get(key)
         display = (
             f"{val} {unit}".strip() if val is not None
-            else '<span style="color:#a3b1c6">N/A</span>'
+            else '<span style="color:#94a3b8">N/A</span>'
         )
         rows += (
             f'<div style="display:flex;justify-content:space-between;padding:8px 0;'
-            f'border-bottom:1px solid rgba(74,122,74,0.1)">'
-            f'<span style="color:#636e72;font-size:13px">{label}</span>'
-            f'<span style="font-weight:600;color:#4a7a4a;font-size:13px">'
+            f'border-bottom:1px solid #e2e8f0">'
+            f'<span style="color:#6b7280;font-size:13px">{label}</span>'
+            f'<span style="font-weight:600;color:#16a34a;font-size:13px">'
             f'{display}</span></div>'
         )
 
-    return _nm_wrap(
+    return _panel_wrap(
         f'<div style="padding:24px;animation:fadeSlideIn 0.3s ease">'
         f'  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
-        f'    <span style="color:#4a7a4a">{ICON["sprout"]}</span>'
+        f'    <span style="color:#16a34a">{ICON["sprout"]}</span>'
         f'    <div>'
-        f'      <div style="font-weight:700;font-size:17px;color:#2d3436">'
+        f'      <div style="font-weight:700;font-size:17px;color:#111827">'
         f'        Soil Data Retrieved</div>'
-        f'      <div style="font-size:12px;color:#636e72">'
+        f'      <div style="font-size:12px;color:#6b7280">'
         f'        Review and choose how to proceed</div>'
         f'    </div>'
         f'  </div>'
-        f'  <div style="background:#e0e5ec;border-radius:14px;'
-        f'box-shadow:4px 4px 8px #a3b1c6,-4px -4px 8px #fff;'
+        f'  <div style="background:#ffffff;border-radius:10px;'
+        f'border:1px solid #e2e8f0;'
         f'padding:18px 20px;margin-bottom:16px">'
         f'    <div style="display:flex;align-items:center;gap:6px;font-size:11px;'
         f'font-weight:700;text-transform:uppercase;letter-spacing:1px;'
-        f'color:#636e72;margin-bottom:6px">'
+        f'color:#6b7280;margin-bottom:6px">'
         f'      {ICON["map_pin"]} Source Location</div>'
-        f'    <div style="font-size:16px;font-weight:600;color:#4a7a4a;'
+        f'    <div style="font-size:16px;font-weight:600;color:#16a34a;'
         f'margin-bottom:2px">{country}</div>'
-        f'    <div style="font-size:12px;color:#636e72;margin-bottom:4px">'
+        f'    <div style="font-size:12px;color:#6b7280;margin-bottom:4px">'
         f'      {region} &middot; {continent}</div>'
         f'    {dist_line}'
-        f'    <div style="background:#d4d9e0;border-radius:8px;padding:8px 12px;'
-        f'margin:8px 0 12px;box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff;'
-        f'font-size:11px;color:#636e72;line-height:1.5">'
+        f'    <div style="background:#f0fdf4;border-radius:8px;padding:8px 12px;'
+        f'margin:8px 0 12px;border:1px solid #e2e8f0;'
+        f'font-size:11px;color:#6b7280;line-height:1.5">'
         f'      This data is from the ISRIC SoilGrids global database and represents '
         f'natural soil conditions. It may not reflect your actual farm soil.</div>'
         f'    <div style="display:flex;align-items:center;gap:6px;font-size:11px;'
         f'font-weight:700;text-transform:uppercase;letter-spacing:1px;'
-        f'color:#636e72;margin:12px 0 8px">'
+        f'color:#6b7280;margin:12px 0 8px">'
         f'      {ICON["sprout"]} Soil Properties (0-5 cm)</div>'
         f'    {rows}'
         f'  </div>'
@@ -926,38 +951,36 @@ def _collect_image_paths(images, video):
 
 
 def _preflight_loading_html(lat, lon):
-    """Neuromorphic loading state shown while fetching soil data."""
-    return _nm_wrap(
+    """Loading state shown while fetching soil data."""
+    return _panel_wrap(
         '<div style="padding:30px;animation:fadeSlideIn 0.3s ease">'
         '  <div style="display:flex;flex-direction:column;align-items:center;'
         'justify-content:center;min-height:350px;gap:24px">'
-        # Floating loader card
-        '    <div style="background:#e0e5ec;border-radius:20px;'
-        'box-shadow:6px 6px 14px #a3b1c6,-6px -6px 14px #fff;'
-        'padding:32px 40px;text-align:center;animation:nmFloat 2s ease-in-out infinite">'
+        '    <div style="background:#ffffff;border-radius:10px;'
+        'border:1px solid #e2e8f0;'
+        'padding:32px 40px;text-align:center">'
         # Spinner ring
         '      <div style="width:56px;height:56px;border-radius:50%;'
-        'border:4px solid #d5dae1;border-top:4px solid #4a7a4a;'
-        'animation:nmSpin 1s linear infinite;margin:0 auto 16px"></div>'
-        f'      <div style="font-size:16px;font-weight:700;color:#2d3436;'
+        'border:4px solid #f0fdf4;border-top:4px solid #16a34a;'
+        'animation:spin 1s linear infinite;margin:0 auto 16px"></div>'
+        f'      <div style="font-size:16px;font-weight:700;color:#111827;'
         f'margin-bottom:6px">{ICON["sprout"]} Checking Soil Data</div>'
-        f'      <div style="font-size:13px;color:#636e72">'
+        f'      <div style="font-size:13px;color:#6b7280">'
         f'Querying SoilGrids for coordinates ({lat:.4f}, {lon:.4f})</div>'
         '    </div>'
-        # Skeleton preview
         '    <div style="width:100%;max-width:440px">'
-        '      <div style="font-size:11px;font-weight:600;color:#a3b1c6;'
+        '      <div style="font-size:11px;font-weight:600;color:#94a3b8;'
         'text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;'
         'text-align:center">Loading soil properties...</div>'
         + ''.join(
             '<div style="display:flex;justify-content:space-between;'
-            'padding:10px 0;border-bottom:1px solid rgba(163,177,198,0.15)">'
+            'padding:10px 0;border-bottom:1px solid #e2e8f0">'
             '<div style="height:14px;border-radius:6px;'
-            f'width:{w}%;background:linear-gradient(90deg,#d5dae1 25%,#e0e5ec 50%,#d5dae1 75%);'
-            'background-size:800px 100%;animation:nmShimmer 1.5s infinite linear"></div>'
+            f'width:{w}%;background:linear-gradient(90deg,#f0fdf4 25%,#ffffff 50%,#f0fdf4 75%);'
+            'background-size:800px 100%;animation:shimmer 1.5s infinite linear"></div>'
             '<div style="height:14px;width:50px;border-radius:6px;'
-            'background:linear-gradient(90deg,#d5dae1 25%,#e0e5ec 50%,#d5dae1 75%);'
-            'background-size:800px 100%;animation:nmShimmer 1.5s infinite linear"></div>'
+            'background:linear-gradient(90deg,#f0fdf4 25%,#ffffff 50%,#f0fdf4 75%);'
+            'background-size:800px 100%;animation:shimmer 1.5s infinite linear"></div>'
             '</div>'
             for w in [30, 22, 25, 18, 35, 28, 32, 40]
         )
@@ -1141,8 +1164,8 @@ def _run_pipeline(preflight_state, soil, soil_source, soil_state):
 
     except Exception as exc:
         yield (
-            _nm_wrap(
-                f'<div style="padding:20px;color:#c0392b">'
+            _panel_wrap(
+                f'<div style="padding:20px;color:#dc2626">'
                 f'Pipeline failed: {exc}</div>'
             ),
             btn_enabled, gr.update(), gr.update()
@@ -1155,11 +1178,15 @@ def _run_pipeline(preflight_state, soil, soil_source, soil_state):
 
 # ── Follow-Up Report Generator ───────────────────────────────────────────────
 
-def _run_followup(followup_images, followup_video, case_context_state):
+def _run_followup(followup_images_val, followup_video_val, case_context_state):
+    # outputs: action_out, followup_btn, case_context, followup_section,
+    #          followup_images, followup_video, new_case_btn
+    n_out = 7
+
     if not case_context_state:
         raise gr.Error("No initial report found. Please run an analysis first.")
 
-    image_paths = _collect_image_paths(followup_images, followup_video)
+    image_paths = _collect_image_paths(followup_images_val, followup_video_val)
     if not image_paths:
         raise gr.Error("Please provide at least one follow-up image or video.")
 
@@ -1235,7 +1262,15 @@ def _run_followup(followup_images, followup_video, case_context_state):
 
     completed: dict[str, str] = {}
 
-    yield _pipeline_html_followup(completed, running=None, pre_step="Preparing follow-up analysis..."), btn_disabled, gr.update(), gr.update()
+    yield (
+        _pipeline_html_followup(completed, running=None, pre_step="Preparing follow-up analysis..."),
+        btn_disabled,
+        gr.update(),
+        gr.update(),
+        gr.update(interactive=False),
+        gr.update(interactive=False),
+        gr.update(interactive=False),
+    )
 
     try:
         for chunk in followup_graph.stream(fu_state):
@@ -1262,13 +1297,21 @@ def _run_followup(followup_images, followup_video, case_context_state):
                     "additional_evidence_suggestion", {}
                 ).get("can_improve_with_more_evidence", False)
 
-                yield report_html, btn_enabled, updated_ctx, gr.update(visible=can_followup)
+                yield (
+                    report_html,
+                    btn_enabled,
+                    updated_ctx,
+                    gr.update(visible=can_followup),
+                    gr.update(value=[], interactive=True),
+                    gr.update(value=None, interactive=True),
+                    gr.update(interactive=True),
+                )
                 return
 
             state_key = FOLLOWUP_STATE_KEY.get(node_name, node_name)
             payload = node_data.get(state_key, node_data)
             if isinstance(payload, dict) and payload.get("parse_error"):
-                raw = payload.get("raw_output", "")
+                raw = payload.get("raw_output", "") or ""
                 raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
                 full_text = raw
             else:
@@ -1279,21 +1322,24 @@ def _run_followup(followup_images, followup_video, case_context_state):
             for line in lines:
                 revealed.append(line)
                 partial = "\n".join(revealed)
-                yield _pipeline_html_followup(completed, running=None, streaming=(node_name, partial)), btn_disabled, gr.update(), gr.update()
+                yield _pipeline_html_followup(completed, running=None, streaming=(node_name, partial)), btn_disabled, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
                 time.sleep(0.05)
 
             completed[node_name] = full_text
             idx = FOLLOWUP_ORDER.index(node_name) if node_name in FOLLOWUP_ORDER else -1
             next_running = FOLLOWUP_ORDER[idx + 1] if 0 <= idx < len(FOLLOWUP_ORDER) - 1 else None
-            yield _pipeline_html_followup(completed, running=next_running), btn_disabled, gr.update(), gr.update()
+            yield _pipeline_html_followup(completed, running=next_running), btn_disabled, gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
 
     except Exception as exc:
         yield (
-            _nm_wrap(
-                f'<div style="padding:20px;color:#c0392b">'
+            _panel_wrap(
+                f'<div style="padding:20px;color:#dc2626">'
                 f'Follow-up pipeline failed: {exc}</div>'
             ),
-            btn_enabled, gr.update(), gr.update()
+            btn_enabled, gr.update(), gr.update(),
+            gr.update(interactive=True),
+            gr.update(interactive=True),
+            gr.update(interactive=True),
         )
     finally:
         shutil.rmtree(upload_dir, ignore_errors=True)
@@ -1307,18 +1353,18 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
     subtitle = pre_step if pre_step else f"Step {step} of 4 complete"
     h.append(
         f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-        f'  <span style="color:#4a7a4a">{ICON["refresh"]}</span>'
+        f'  <span style="color:#16a34a">{ICON["refresh"]}</span>'
         f'  <div>'
-        f'    <div style="font-weight:700;font-size:16px;color:#2d3436">'
+        f'    <div style="font-weight:700;font-size:16px;color:#111827">'
         f'      Follow-Up Analysis</div>'
-        f'    <div style="font-size:12px;color:#636e72;margin-top:2px">'
+        f'    <div style="font-size:12px;color:#6b7280;margin-top:2px">'
         f'      {subtitle}</div>'
         f'  </div></div>'
     )
     h.append(
-        f'<div style="background:#e0e5ec;border-radius:8px;height:8px;'
-        f'margin-bottom:24px;box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff">'
-        f'  <div style="background:linear-gradient(90deg,#4a7a4a,#6da86d);'
+        f'<div style="background:#f8faf8;border-radius:8px;height:8px;'
+        f'margin-bottom:24px;border:1px solid #e2e8f0">'
+        f'  <div style="background:#16a34a;'
         f'width:{pct}%;height:100%;border-radius:8px;transition:width 0.6s ease"></div>'
         f'</div>'
     )
@@ -1332,9 +1378,9 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
             if is_running:
                 h.append(
                     f'<div style="display:flex;align-items:center;gap:8px;padding:12px 16px;'
-                    f'background:#e0e5ec;border-radius:12px;'
-                    f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
-                    f'color:#4a7a4a;font-weight:600">'
+                    f'background:#f0fdf4;border-radius:8px;'
+                    f'border:1px solid #bbf7d0;'
+                    f'color:#16a34a;font-weight:600">'
                     f'{icon} {label}<span class="pulse-indicator"></span>'
                     f'</div>'
                 )
@@ -1343,26 +1389,26 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
         if is_done or is_streaming:
             text = completed.get(agent_id, "") if is_done else streaming[1]
             cursor = "" if is_done else '<span class="typewriter-cursor">|</span>'
-            check = f'<span style="color:#27ae60">{ICON["check_circle"]}</span>' if is_done else f'<span style="color:#4a7a4a">{icon}</span>'
+            check = f'<span style="color:#16a34a">{ICON["check_circle"]}</span>' if is_done else f'<span style="color:#16a34a">{icon}</span>'
             h.append(
                 f'<div style="margin-bottom:14px;{"animation:fadeSlideIn 0.35s ease;" if is_done else ""}">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-                f'    {check}<span style="font-weight:600;color:#2d3436;font-size:14px">{label}</span></div>'
-                f'  <div style="background:#e0e5ec;border-radius:10px;'
-                f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
+                f'    {check}<span style="font-weight:600;color:#111827;font-size:14px">{label}</span></div>'
+                f'  <div style="background:#f8faf8;border-radius:8px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;font-family:\'Inter\',monospace;font-size:12px;'
-                f'line-height:1.7;color:#2d3436;white-space:pre-wrap;max-height:180px;overflow-y:auto">'
+                f'line-height:1.7;color:#111827;white-space:pre-wrap;max-height:180px;overflow-y:auto">'
                 f'{text}{cursor}</div></div>'
             )
         elif is_running:
             h.append(
                 f'<div style="margin-bottom:14px">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-                f'    <span style="color:#4a7a4a">{icon}</span>'
-                f'    <span style="font-weight:600;color:#2d3436;font-size:14px">{label}</span>'
+                f'    <span style="color:#16a34a">{icon}</span>'
+                f'    <span style="font-weight:600;color:#111827;font-size:14px">{label}</span>'
                 f'    <span class="pulse-indicator"></span></div>'
-                f'  <div style="background:#e0e5ec;border-radius:10px;'
-                f'box-shadow:inset 3px 3px 6px #a3b1c6,inset -3px -3px 6px #fff;'
+                f'  <div style="background:#f8faf8;border-radius:8px;'
+                f'border:1px solid #e2e8f0;'
                 f'padding:14px 16px;color:#bbb;font-size:12px">'
                 f'    <span class="typewriter-cursor">|</span></div></div>'
             )
@@ -1373,19 +1419,19 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
             )
 
     h.append('</div>')
-    return _nm_wrap("".join(h))
+    return _panel_wrap("".join(h))
 
 
 # ── New Case Reset ───────────────────────────────────────────────────────────
 
 def _reset_case():
-    placeholder = _nm_wrap(
+    placeholder = _panel_wrap(
         '<div style="display:flex;align-items:center;justify-content:center;'
-        'height:100%;min-height:400px;color:#a3b1c6;font-size:15px;text-align:center;'
+        'height:100%;min-height:400px;color:#94a3b8;font-size:15px;text-align:center;'
         'padding:40px"><div>'
-        f'<div style="margin-bottom:16px;color:#4a7a4a;opacity:0.4;'
+        f'<div style="margin-bottom:16px;color:#16a34a;opacity:0.4;'
         f'transform:scale(1.5)">{ICON["leaf"]}</div>'
-        '<div style="color:#636e72;font-weight:500;line-height:1.6">'
+        '<div style="color:#6b7280;font-weight:500;line-height:1.6">'
         'Upload an image and run analysis<br>to see results here</div>'
         '</div></div>'
     )
@@ -1401,6 +1447,8 @@ def _reset_case():
         {"q_index": -1, "answers": {}, "mode": "database"},  # soil state
         None,                       # preflight state
         gr.update(visible=False),   # soil choice row
+        gr.update(value=[], interactive=True),   # followup images
+        gr.update(value=None, interactive=True), # followup video
     )
 
 
@@ -1411,17 +1459,17 @@ def _check_agent_status():
     names = get_all_model_names()
     all_ok = all("unavailable" not in v for v in names.values())
     if all_ok:
-        dot = '#27ae60'
+        dot = '#16a34a'
         text = 'All agents connected and available'
     else:
-        dot = '#e74c3c'
+        dot = '#dc2626'
         failed = sum(1 for v in names.values() if "unavailable" in v)
         text = f'{failed} agent{"s" if failed > 1 else ""} cannot be reached'
     return (
         f'<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
         f'<span style="width:10px;height:10px;border-radius:50%;background:{dot};'
         f'display:inline-block;flex-shrink:0;box-shadow:0 0 6px {dot}"></span>'
-        f'<span style="font-size:13px;font-weight:500;color:#2d3436">{text}</span>'
+        f'<span style="font-size:13px;font-weight:500;color:#111827">{text}</span>'
         f'</div>'
     )
 
@@ -1440,15 +1488,15 @@ with gr.Blocks(
     # Header
     gr.HTML(
         f'<div style="display:flex;align-items:center;gap:16px;padding:16px 8px 20px;margin-bottom:4px">'
-        f'  <div style="width:48px;height:48px;border-radius:14px;'
-        f'background:linear-gradient(135deg,#4a7a4a,#6da86d);'
-        f'box-shadow:4px 4px 8px #a3b1c6,-4px -4px 8px #fff;'
+        f'  <div style="width:48px;height:48px;border-radius:10px;'
+        f'background:#16a34a;'
+        f'border:1px solid #e2e8f0;'
         f'display:flex;align-items:center;justify-content:center;color:#fff">'
         f'    {ICON["leaf"]}</div>'
         f'  <div>'
-        f'    <div style="font-size:26px;font-weight:700;color:#2d3436;'
-        f'letter-spacing:-0.5px">Crop<span style="color:#4a7a4a">Whisper</span></div>'
-        f'    <div style="font-size:12px;color:#636e72;font-weight:500;'
+        f'    <div style="font-size:26px;font-weight:700;color:#111827;'
+        f'letter-spacing:-0.5px">Crop<span style="color:#16a34a">Whisper</span></div>'
+        f'    <div style="font-size:12px;color:#6b7280;font-weight:500;'
         f'letter-spacing:0.5px">Point. Analyze. Grow.</div>'
         f'  </div>'
         f'</div>'
@@ -1460,16 +1508,25 @@ with gr.Blocks(
         function fix() {
             document.querySelectorAll('button[title*="common."]').forEach(function(b){
                 var t = b.title;
-                if (t.includes('upload')) b.title = 'Upload files';
+                if (t.includes('upload')) b.title = 'Add more images';
                 else if (t.includes('clear')) b.title = 'Clear';
                 else if (t.includes('download')) b.title = 'Download';
                 else b.title = t.replace('common.', '');
             });
             document.querySelectorAll('button[aria-label*="common."]').forEach(function(b){
                 var t = b.getAttribute('aria-label');
-                if (t.includes('upload')) b.setAttribute('aria-label', 'Upload files');
+                if (t.includes('upload')) b.setAttribute('aria-label', 'Add more images');
                 else if (t.includes('clear')) b.setAttribute('aria-label', 'Clear');
                 else b.setAttribute('aria-label', t.replace('common.', ''));
+            });
+            /* Replace upload button icon with a clear "+" icon */
+            document.querySelectorAll('button[aria-label="Add more images"]').forEach(function(b){
+                if (b.dataset.cwPlusIcon) return;
+                b.dataset.cwPlusIcon = '1';
+                var svg = b.querySelector('svg');
+                if (svg) {
+                    svg.outerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+                }
             });
         }
         /* Label source-switcher buttons with text */
@@ -1493,7 +1550,7 @@ with gr.Blocks(
                 else if (txt.includes('clipboard') || txt.includes('paste')) display = 'Paste';
                 var sp = document.createElement('span');
                 sp.className = 'cw-src-label';
-                sp.style.cssText = 'font-size:12px;font-weight:600;color:#4a7a4a;white-space:nowrap';
+                sp.style.cssText = 'font-size:12px;font-weight:600;color:#16a34a;white-space:nowrap';
                 sp.textContent = display;
                 btn.appendChild(sp);
             }
@@ -1508,9 +1565,9 @@ with gr.Blocks(
     with gr.Row(elem_id="cw-status-bar"):
         agent_status = gr.HTML(
             value='<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
-                  '<span style="width:10px;height:10px;border-radius:50%;background:#a3b1c6;'
+                  '<span style="width:10px;height:10px;border-radius:50%;background:#94a3b8;'
                   'display:inline-block;flex-shrink:0"></span>'
-                  '<span style="font-size:13px;font-weight:500;color:#636e72">'
+                  '<span style="font-size:13px;font-weight:500;color:#6b7280">'
                   'Click refresh to check agent status</span></div>'
         )
         status_refresh_btn = gr.Button("Refresh", size="sm", elem_id="cw-status-refresh")
@@ -1522,7 +1579,7 @@ with gr.Blocks(
             # Image input
             gr.HTML(
                 f'<div style="display:flex;align-items:center;gap:8px;font-size:14px;'
-                f'font-weight:700;color:#4a7a4a;margin-bottom:6px;padding:4px 0">'
+                f'font-weight:700;color:#16a34a;margin-bottom:6px;padding:4px 0">'
                 f'{ICON["camera"]} <span>Crop Images</span></div>'
             )
             image_input = gr.Gallery(
@@ -1536,7 +1593,7 @@ with gr.Blocks(
             )
             gr.HTML(
                 f'<div style="display:flex;align-items:center;gap:8px;font-size:12px;'
-                f'color:#636e72;margin:-4px 0 6px;padding:0 4px">'
+                f'color:#6b7280;margin:-4px 0 6px;padding:0 4px">'
                 f'{ICON["camera"]} <span>Or capture/upload video (keyframes auto-extracted)</span></div>'
             )
             video_input = gr.Video(
@@ -1548,7 +1605,7 @@ with gr.Blocks(
             # Transcript
             gr.HTML(
                 f'<div style="display:flex;align-items:center;gap:8px;font-size:14px;'
-                f'font-weight:700;color:#4a7a4a;margin:12px 0 6px;padding:4px 0">'
+                f'font-weight:700;color:#16a34a;margin:12px 0 6px;padding:4px 0">'
                 f'{ICON["clipboard"]} <span>Farmer Description</span></div>'
             )
             transcript_input = gr.Textbox(
@@ -1561,7 +1618,7 @@ with gr.Blocks(
             # Location
             gr.HTML(
                 f'<div style="display:flex;align-items:center;gap:8px;font-size:14px;'
-                f'font-weight:700;color:#4a7a4a;margin:12px 0 6px;padding:4px 0">'
+                f'font-weight:700;color:#16a34a;margin:12px 0 6px;padding:4px 0">'
                 f'{ICON["map_pin"]} <span>Location</span></div>'
             )
             with gr.Row():
@@ -1579,7 +1636,7 @@ with gr.Blocks(
                 )
             location_display = gr.HTML(
                 value='<div id="cw-loc-display" style="padding:6px 12px;font-size:13px;'
-                      'color:#636e72;min-height:20px"></div>',
+                      'color:#6b7280;min-height:20px"></div>',
                 elem_id="cw-loc-display-wrap",
             )
             detect_loc_btn = gr.Button(
@@ -1590,10 +1647,10 @@ with gr.Blocks(
                 js="""() => {
                     var display = document.getElementById('cw-loc-display');
                     if (!navigator.geolocation) {
-                        if (display) display.innerHTML = '<span style=\"color:#c0392b\">Geolocation not supported by your browser</span>';
+                        if (display) display.innerHTML = '<span style=\"color:#dc2626\">Geolocation not supported by your browser</span>';
                         return;
                     }
-                    if (display) display.innerHTML = '<span style=\"color:#636e72\">Requesting location access...</span>';
+                    if (display) display.innerHTML = '<span style=\"color:#6b7280\">Requesting location access...</span>';
                     navigator.geolocation.getCurrentPosition(
                         function(pos) {
                             var lat = pos.coords.latitude, lng = pos.coords.longitude;
@@ -1607,7 +1664,7 @@ with gr.Blocks(
                             }
                             setVal('#cw-lat-hidden textarea, #cw-lat-hidden input', lat.toFixed(6));
                             setVal('#cw-lng-hidden textarea, #cw-lng-hidden input', lng.toFixed(6));
-                            if (display) display.innerHTML = '<span style=\"color:#636e72\">Resolving location...</span>';
+                            if (display) display.innerHTML = '<span style=\"color:#6b7280\">Resolving location...</span>';
                             fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=5')
                             .then(function(r){return r.json()})
                             .then(function(d){
@@ -1615,15 +1672,15 @@ with gr.Blocks(
                                 var code = (d.address && d.address.country_code) || '';
                                 var flag = code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65)) : '';
                                 if (display) display.innerHTML = '<span style=\"font-size:20px\">' + flag + '</span> '
-                                    + '<strong style=\"color:#4a7a4a\">' + country + '</strong>'
-                                    + ' <span style=\"color:#636e72\">(' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')</span>';
+                                    + '<strong style=\"color:#16a34a\">' + country + '</strong>'
+                                    + ' <span style=\"color:#6b7280\">(' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')</span>';
                             })
                             .catch(function(){
-                                if (display) display.innerHTML = '<span style=\"color:#636e72\">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</span>';
+                                if (display) display.innerHTML = '<span style=\"color:#6b7280\">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</span>';
                             });
                         },
                         function(err) {
-                            if (display) display.innerHTML = '<span style=\"color:#c0392b\">Location access denied. Please allow location in browser settings.</span>';
+                            if (display) display.innerHTML = '<span style=\"color:#dc2626\">Location access denied. Please allow location in browser settings.</span>';
                         },
                         {enableHighAccuracy: true, timeout: 10000}
                     );
@@ -1634,15 +1691,15 @@ with gr.Blocks(
                 js="""(lat, lon) => {
                     var display = document.getElementById('cw-loc-display');
                     if (!lat || !lon) {
-                        if (display) display.innerHTML = '<span style=\"color:#c0392b\">Please enter both latitude and longitude</span>';
+                        if (display) display.innerHTML = '<span style=\"color:#dc2626\">Please enter both latitude and longitude</span>';
                         return;
                     }
                     var la = parseFloat(lat), lo = parseFloat(lon);
                     if (isNaN(la) || isNaN(lo)) {
-                        if (display) display.innerHTML = '<span style=\"color:#c0392b\">Invalid coordinates</span>';
+                        if (display) display.innerHTML = '<span style=\"color:#dc2626\">Invalid coordinates</span>';
                         return;
                     }
-                    if (display) display.innerHTML = '<span style=\"color:#636e72\">Looking up location...</span>';
+                    if (display) display.innerHTML = '<span style=\"color:#6b7280\">Looking up location...</span>';
                     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+la+'&lon='+lo+'&zoom=5')
                     .then(function(r){return r.json()})
                     .then(function(d){
@@ -1650,11 +1707,11 @@ with gr.Blocks(
                         var code = (d.address && d.address.country_code) || '';
                         var flag = code ? String.fromCodePoint(...[...code.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65)) : '';
                         if (display) display.innerHTML = '<span style=\"font-size:20px\">' + flag + '</span> '
-                            + '<strong style=\"color:#4a7a4a\">' + country + '</strong>'
-                            + ' <span style=\"color:#636e72\">(' + la.toFixed(4) + ', ' + lo.toFixed(4) + ')</span>';
+                            + '<strong style=\"color:#16a34a\">' + country + '</strong>'
+                            + ' <span style=\"color:#6b7280\">(' + la.toFixed(4) + ', ' + lo.toFixed(4) + ')</span>';
                     })
                     .catch(function(){
-                        if (display) display.innerHTML = '<span style=\"color:#636e72\">' + la.toFixed(4) + ', ' + lo.toFixed(4) + '</span>';
+                        if (display) display.innerHTML = '<span style=\"color:#6b7280\">' + la.toFixed(4) + ', ' + lo.toFixed(4) + '</span>';
                     });
                 }""",
                 inputs=[lat_input, lon_input],
@@ -1666,14 +1723,14 @@ with gr.Blocks(
         with gr.Column(scale=1, elem_id="cw-right-col"):
             action_out = gr.HTML(
                 elem_id="action-out",
-                value=_nm_wrap(
+                value=_panel_wrap(
                     '<div style="display:flex;align-items:center;justify-content:center;'
-                    'height:100%;min-height:400px;color:#a3b1c6;font-size:15px;text-align:center;'
+                    'height:100%;min-height:400px;color:#94a3b8;font-size:15px;text-align:center;'
                     'padding:40px">'
                     '<div>'
-                    f'<div style="margin-bottom:16px;color:#4a7a4a;opacity:0.4;'
+                    f'<div style="margin-bottom:16px;color:#16a34a;opacity:0.4;'
                     f'transform:scale(1.5)">{ICON["leaf"]}</div>'
-                    '<div style="color:#636e72;font-weight:500;line-height:1.6">'
+                    '<div style="color:#6b7280;font-weight:500;line-height:1.6">'
                     'Upload an image and run analysis<br>to see results here</div>'
                     '</div></div>'
                 ),
@@ -1683,9 +1740,9 @@ with gr.Blocks(
             with gr.Row(visible=False, elem_id="soil-choice-row") as soil_choice_row:
                 gr.HTML(
                     '<div class="soil-proceed-label">'
-                    '<div style="font-size:15px;color:#2d3436;font-weight:600;margin-bottom:2px">'
+                    '<div style="font-size:15px;color:#111827;font-weight:600;margin-bottom:2px">'
                     'How would you like to proceed?</div>'
-                    '<div style="font-size:12px;color:#636e72">Choose an option</div>'
+                    '<div style="font-size:12px;color:#6b7280">Choose an option</div>'
                     '</div>'
                 )
                 soil_use_db_btn = gr.Button("Use This Soil Data", variant="secondary", size="lg")
@@ -1702,12 +1759,12 @@ with gr.Blocks(
             with gr.Column(visible=False) as followup_section:
                 gr.HTML(
                     f'<div style="display:flex;align-items:center;gap:10px;margin-top:16px;'
-                    f'padding:12px 16px;border-radius:12px;'
-                    f'background:linear-gradient(135deg,#e8f0e8,#e0e5ec);'
-                    f'box-shadow:inset 2px 2px 4px #a3b1c6,inset -2px -2px 4px #fff">'
-                    f'<span style="color:#4a7a4a">{ICON["plus_circle"]}</span>'
+                    f'padding:12px 16px;border-radius:10px;'
+                    f'background:#f0fdf4;'
+                    f'border:1px solid #bbf7d0">'
+                    f'<span style="color:#16a34a">{ICON["plus_circle"]}</span>'
                     f'<span style="font-weight:700;font-size:15px;'
-                    f'color:#4a7a4a">Follow Up</span></div>'
+                    f'color:#16a34a">Follow Up</span></div>'
                 )
                 followup_images = gr.Gallery(
                     label="Follow-up images (max 500KB total)",
@@ -1782,13 +1839,13 @@ with gr.Blocks(
                     {"country": "Your location", "region": "", "continent": ""},
                     soil, source="answers"
                 )
-                done_html = _nm_wrap(
+                done_html = _panel_wrap(
                     f'<div style="padding:20px;animation:fadeSlideIn 0.3s ease">'
                     f'<div style="text-align:center;margin-bottom:16px">'
-                    f'<span style="color:#27ae60">{ICON["check_circle"]}</span>'
+                    f'<span style="color:#16a34a">{ICON["check_circle"]}</span>'
                     f'<div style="font-weight:700;font-size:16px;margin-top:8px;'
-                    f'color:#2d3436">Soil profile ready!</div>'
-                    f'<div style="font-size:13px;color:#636e72;margin-top:4px">'
+                    f'color:#111827">Soil profile ready!</div>'
+                    f'<div style="font-size:13px;color:#6b7280;margin-top:4px">'
                     f'Starting analysis with your soil profile...</div>'
                     f'</div>{summary_card}</div>'
                 )
@@ -1821,7 +1878,8 @@ with gr.Blocks(
     followup_btn.click(
         fn=_run_followup,
         inputs=[followup_images, followup_video, case_context],
-        outputs=[action_out, followup_btn, case_context, followup_section],
+        outputs=[action_out, followup_btn, case_context, followup_section,
+                 followup_images, followup_video, new_case_btn],
     )
 
     # New case
@@ -1832,6 +1890,7 @@ with gr.Blocks(
             image_input, video_input, transcript_input, lat_input, lon_input,
             action_out, case_context, followup_section, soil_state,
             preflight_state, soil_choice_row,
+            followup_images, followup_video,
         ],
         js="() => { if(!confirm('This will clear all case data. You will not be able to follow up on this case. Continue?')) throw new Error('cancelled'); }",
     )

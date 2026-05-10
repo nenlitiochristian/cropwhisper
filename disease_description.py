@@ -84,11 +84,29 @@ def call_visual_model(
     )
 
     raw = response.choices[0].message.content or ""
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        parsed = {"raw_output": raw, "parse_error": True}
+    parsed = _extract_json(raw)
     return raw, parsed
+
+
+def _extract_json(raw: str | None) -> dict:
+    """Extract JSON from LLM output, handling think tags and code fences."""
+    import re
+    if not raw:
+        return {"raw_output": "", "parse_error": True}
+    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = re.sub(r"```(?:json)?\s*", "", text).strip()
+    text = re.sub(r"```\s*$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{[\s\S]*\}", text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+    return {"raw_output": raw, "parse_error": True}
 
 
 def write_rag_header(out_file: Path, metadata: dict[str, Any]) -> None:

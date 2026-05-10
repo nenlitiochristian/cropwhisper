@@ -47,9 +47,11 @@ class FollowUpState(TypedDict):
 
 VL_MODEL_ENDPOINT_URL = os.environ.get("VL_MODEL_ENDPOINT_URL", "http://localhost:8000/v1")
 REASONING_MODEL_ENDPOINT_URL = os.environ.get("REASONING_MODEL_ENDPOINT_URL", "http://localhost:8001/v1")
+RAG_ENABLED = os.environ.get("RAG_ENABLED", "true").lower() in ("true", "1", "yes")
 
 logger.info("VL endpoint:        %s", VL_MODEL_ENDPOINT_URL)
 logger.info("Reasoning endpoint: %s", REASONING_MODEL_ENDPOINT_URL)
+logger.info("RAG enabled:        %s", RAG_ENABLED)
 
 client_vl = OpenAI(base_url=VL_MODEL_ENDPOINT_URL, api_key="none")
 client_reasoning = OpenAI(base_url=REASONING_MODEL_ENDPOINT_URL, api_key="none")
@@ -58,6 +60,29 @@ _model_name_cache: Dict[str, str] = {}
 
 _supabase: SupabaseClient | None = None
 _rag_cache: list[dict] | None = None
+
+
+def _extract_json(raw: str | None) -> dict:
+    """Extract a JSON object from LLM output, handling think tags and code fences."""
+    if not raw:
+        return {"raw_output": "", "parse_error": True}
+    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = re.sub(r"```(?:json)?\s*", "", text).strip()
+    text = re.sub(r"```\s*$", "", text).strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return {"raw_output": raw, "parse_error": True}
 
 
 def _get_supabase() -> SupabaseClient | None:
@@ -98,6 +123,7 @@ def _rag_lookup(visual: dict, top_k: int = 5) -> list[dict]:
     global _rag_cache
     sb = _get_supabase()
     if sb is None:
+        logger.info("[RAG] Supabase not configured — skipping RAG lookup")
         return []
 
     if _rag_cache is None:
@@ -105,14 +131,21 @@ def _rag_lookup(visual: dict, top_k: int = 5) -> list[dict]:
             _rag_cache = sb.table("rag_documents").select(
                 "crop,condition,visual_description"
             ).execute().data
-        except Exception:
+            logger.info("[RAG] Loaded %d documents from rag_documents table", len(_rag_cache))
+        except Exception as exc:
+            logger.error("[RAG] Failed to load rag_documents: %s", exc)
             return []
 
+    query_text = _visual_to_text(visual)
     query_words = set(
-        w for w in _visual_to_text(visual).lower().split() if len(w) > 3
+        w for w in query_text.lower().split() if len(w) > 3
     )
     if not query_words:
+        logger.info("[RAG] No query keywords extracted from visual description")
         return []
+
+    logger.info("[RAG] Query keywords (%d): %s", len(query_words),
+                ", ".join(sorted(list(query_words)[:20])))
 
     scored = []
     for row in _rag_cache:
@@ -124,7 +157,17 @@ def _rag_lookup(visual: dict, top_k: int = 5) -> list[dict]:
             scored.append((overlap, row))
 
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [row for _, row in scored[:top_k]]
+    results = [row for _, row in scored[:top_k]]
+
+    logger.info("[RAG] Matched %d documents (top %d returned):", len(scored), top_k)
+    for i, (score, row) in enumerate(scored[:top_k]):
+        logger.info("  %d. [score=%d] %s / %s",
+                     i + 1, score,
+                     row.get("crop", "?"), row.get("condition", "?"))
+    if not results:
+        logger.info("  (no matches)")
+
+    return results
 
 
 def get_model_name(client: OpenAI) -> str:
@@ -212,11 +255,7 @@ def _visual_description_node(state: AgentState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        visual_description = json.loads(raw)
-    except json.JSONDecodeError:
-        visual_description = {"raw_output": raw, "parse_error": True}
-
+    visual_description = _extract_json(raw)
     return {"visual_description": visual_description}
 
 
@@ -227,8 +266,10 @@ def _analyzer_node(state: AgentState) -> dict:
     region = state["region_context"]
     system_prompt = _get_prompt("analyzer")
 
-    similar_cases = _rag_lookup(visual)
+    similar_cases = _rag_lookup(visual) if RAG_ENABLED else []
     rag_db_section = ""
+    if not RAG_ENABLED:
+        logger.info("[Agent 2] RAG is disabled via RAG_ENABLED env var")
     if similar_cases:
         lines = []
         for doc in similar_cases:
@@ -250,6 +291,13 @@ def _analyzer_node(state: AgentState) -> dict:
         "Produce your differential diagnosis now."
     )
 
+    if rag_db_section:
+        logger.info("[Agent 2] RAG context included (%d chars):\n%s",
+                     len(rag_db_section), rag_db_section[:500])
+    else:
+        logger.info("[Agent 2] No RAG context available for this analysis")
+    logger.info("[Agent 2] Full prompt length: %d chars", len(user_prompt))
+
     response = client_reasoning.chat.completions.create(
         model=get_model_name(client_reasoning),
         messages=[
@@ -260,11 +308,7 @@ def _analyzer_node(state: AgentState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        diagnosis = json.loads(raw)
-    except json.JSONDecodeError:
-        diagnosis = {"raw_output": raw, "parse_error": True}
-
+    diagnosis = _extract_json(raw)
     return {"diagnosis": diagnosis}
 
 
@@ -297,11 +341,7 @@ def _verification_node(state: AgentState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        assessment = json.loads(raw)
-    except json.JSONDecodeError:
-        assessment = {"raw_output": raw, "parse_error": True}
-
+    assessment = _extract_json(raw)
     return {"verified_assessment": assessment}
 
 
@@ -329,11 +369,7 @@ def _action_plan_node(state: AgentState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        action_plan = json.loads(raw)
-    except json.JSONDecodeError:
-        action_plan = {"raw_output": raw, "parse_error": True}
-
+    action_plan = _extract_json(raw)
     return {"action_plan": action_plan}
 
 
@@ -391,11 +427,7 @@ def _followup_prompt_generator_node(state: FollowUpState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        generated_prompt = json.loads(raw)
-    except json.JSONDecodeError:
-        generated_prompt = {"raw_output": raw, "parse_error": True}
-
+    generated_prompt = _extract_json(raw)
     return {"generated_prompt": generated_prompt}
 
 
@@ -454,11 +486,7 @@ def _followup_diagnosis_adjuster_node(state: FollowUpState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        adjusted = json.loads(raw)
-    except json.JSONDecodeError:
-        adjusted = {"raw_output": raw, "parse_error": True}
-
+    adjusted = _extract_json(raw)
     return {"adjusted_diagnosis": adjusted}
 
 
@@ -488,11 +516,7 @@ def _followup_verification_node(state: FollowUpState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        verification = json.loads(raw)
-    except json.JSONDecodeError:
-        verification = {"raw_output": raw, "parse_error": True}
-
+    verification = _extract_json(raw)
     return {"followup_verification": verification}
 
 
@@ -526,11 +550,7 @@ def _followup_action_node(state: FollowUpState) -> dict:
     )
 
     raw = response.choices[0].message.content
-    try:
-        followup_action = json.loads(raw)
-    except json.JSONDecodeError:
-        followup_action = {"raw_output": raw, "parse_error": True}
-
+    followup_action = _extract_json(raw)
     return {"followup_action": followup_action}
 
 
