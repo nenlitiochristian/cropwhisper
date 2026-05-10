@@ -262,6 +262,27 @@ button.primary:active {
     box-shadow: inset 3px 3px 6px #3a6a3a, inset -3px -3px 6px #7dba7d !important;
 }
 
+/* ── Agent status bar ── */
+#cw-status-bar {
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 16px !important;
+    margin-bottom: 12px !important;
+    background: #e0e5ec !important;
+    border-radius: 12px !important;
+    box-shadow: 3px 3px 6px #a3b1c6, -3px -3px 6px #fff !important;
+}
+#cw-status-bar > div:first-child {
+    flex: 1 1 auto !important;
+}
+#cw-status-refresh {
+    flex: 0 0 auto !important;
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    min-width: auto !important;
+    border-radius: 8px !important;
+}
+
 /* ── Hide soil option buttons (we use JS to click them from quiz HTML) ── */
 #soil-opts-row { display: none !important; }
 

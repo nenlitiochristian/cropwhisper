@@ -1,8 +1,16 @@
 
 import json
+import logging
 import os
 import re
 from typing import TypedDict, Dict
+
+logger = logging.getLogger("cropwhisper.agent")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 from utils.image import encode_image_to_base64
 
@@ -39,6 +47,9 @@ class FollowUpState(TypedDict):
 
 VL_MODEL_ENDPOINT_URL = os.environ.get("VL_MODEL_ENDPOINT_URL", "http://localhost:8000/v1")
 REASONING_MODEL_ENDPOINT_URL = os.environ.get("REASONING_MODEL_ENDPOINT_URL", "http://localhost:8001/v1")
+
+logger.info("VL endpoint:        %s", VL_MODEL_ENDPOINT_URL)
+logger.info("Reasoning endpoint: %s", REASONING_MODEL_ENDPOINT_URL)
 
 client_vl = OpenAI(base_url=VL_MODEL_ENDPOINT_URL, api_key="none")
 client_reasoning = OpenAI(base_url=REASONING_MODEL_ENDPOINT_URL, api_key="none")
@@ -127,17 +138,23 @@ def get_model_name(client: OpenAI) -> str:
 
 def get_all_model_names() -> Dict[str, str]:
     """Return a mapping of agent role -> resolved model name for all four vLLM servers."""
+    logger.info("--- Checking agent connections ---")
     result = {}
-    for label, client in [
-        ("Agent 1 — Visual (port 8000)", client_vl),
-        ("Agent 2 — Analyzer (port 8001)", client_reasoning),
-        ("Agent 3 — Verifier (port 8001)", client_reasoning),
-        ("Agent 4 — Action (port 8001)", client_reasoning),
+    for label, client, url in [
+        ("Agent 1 — Visual", client_vl, VL_MODEL_ENDPOINT_URL),
+        ("Agent 2 — Analyzer", client_reasoning, REASONING_MODEL_ENDPOINT_URL),
+        ("Agent 3 — Verifier", client_reasoning, REASONING_MODEL_ENDPOINT_URL),
+        ("Agent 4 — Action", client_reasoning, REASONING_MODEL_ENDPOINT_URL),
     ]:
         try:
-            result[label] = get_model_name(client)
+            name = get_model_name(client)
+            result[label] = name
+            logger.info("  ✓ %s → %s (%s)", label, name, url)
         except Exception as exc:
             result[label] = f"unavailable ({exc})"
+            logger.error("  ✗ %s → UNREACHABLE at %s: %s", label, url, exc)
+    all_ok = all("unavailable" not in v for v in result.values())
+    logger.info("--- Result: %s ---", "ALL OK" if all_ok else "SOME FAILED")
     return result
 
 
