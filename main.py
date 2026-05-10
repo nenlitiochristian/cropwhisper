@@ -33,6 +33,8 @@ supabase: Client | None = (
 app_graph = construct_graph()
 followup_graph = construct_followup_graph()
 
+
+SOIL_BASE_URL = "https://rest.isric.org/soilgrids/v2.0"
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _haversine(lat1, lon1, lat2, lon2):
@@ -64,7 +66,7 @@ def _find_nearest_location(lat, lon):
 def _get_soil_data(lat, lon):
     try:
         resp = requests.get(
-            "https://rest.isric.org/soilgrids/v2.0/properties/query",
+            SOIL_BASE_URL + "/properties/query",
             params={
                 "lon": lon, "lat": lat,
                 "property": list(SOIL_PROPS.keys()),
