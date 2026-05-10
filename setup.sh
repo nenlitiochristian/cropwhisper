@@ -13,33 +13,11 @@ source crop_env/bin/activate
 
 # 3. Install Python dependencies inside the virtual environment
 pip install --upgrade pip
-pip install \
-    langgraph \
-    supabase \
-    openai \
-    gradio \
-    transformers \
-    accelerate \
-    soundfile \
-    librosa \
-    sentencepiece \
-    opencv-python-headless \
-    vllm==0.17.1
+pip install -r requirements.txt
 
 # For windows use the following command to install dependencies
 # python -m pip install --upgrade pip
-# python -m pip install `
-#     langgraph `
-#     supabase `
-#     openai `
-#     gradio `
-#     transformers `
-#     accelerate `
-#     soundfile `
-#     librosa `
-#     sentencepiece `
-#     opencv-python-headless `
-#     vllm==0.17.1
+# python -m pip install -r requirements.txt
 
 # 4. Agents Setup
 

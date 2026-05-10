@@ -2,10 +2,4 @@ langgraph
 supabase
 openai
 gradio
-transformers
-accelerate
-soundfile
-librosa
-sentencepiece
-opencv-python-headless
 python-dotenv
