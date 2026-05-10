@@ -63,7 +63,7 @@ _rag_cache: list[dict] | None = None
 
 
 def _extract_json(raw: str | None) -> dict:
-    """Extract a JSON object from LLM output, handling think tags and code fences."""
+    """Extract a JSON object from LLM output, handling think tags, code fences, and truncation."""
     if not raw:
         return {"raw_output": "", "parse_error": True}
     text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
@@ -79,6 +79,24 @@ def _extract_json(raw: str | None) -> dict:
     if match:
         try:
             return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Handle truncated JSON: find the opening brace and try closing unclosed structures
+    brace_start = text.find("{")
+    if brace_start >= 0:
+        fragment = text[brace_start:]
+        # Remove trailing incomplete key-value pairs (e.g. `"key":` with no value)
+        fragment = re.sub(r',?\s*"[^"]*"\s*:\s*$', "", fragment)
+        # Count unclosed braces/brackets and close them
+        opens = fragment.count("{") - fragment.count("}")
+        open_brackets = fragment.count("[") - fragment.count("]")
+        repair = fragment + ("]" * max(open_brackets, 0)) + ("}" * max(opens, 0))
+        try:
+            result = json.loads(repair)
+            logger.warning("Repaired truncated JSON (%d unclosed braces, %d unclosed brackets)",
+                           max(opens, 0), max(open_brackets, 0))
+            return result
         except json.JSONDecodeError:
             pass
 
@@ -546,7 +564,7 @@ def _followup_action_node(state: FollowUpState) -> dict:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        max_tokens=2048,
+        max_tokens=4096,
     )
 
     raw = response.choices[0].message.content

@@ -485,7 +485,7 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
             continue
 
         if is_done or is_streaming:
-            text = completed.get(agent_id, "") if is_done else streaming[1]
+            raw_text = completed.get(agent_id, "") if is_done else streaming[1]
             cursor = (
                 "" if is_done
                 else '<span class="typewriter-cursor">|</span>'
@@ -497,6 +497,13 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
                 f'<span style="color:#16a34a">{icon}</span>'
             )
             anim = 'animation:fadeSlideIn 0.35s ease;' if is_done else ''
+            if is_streaming:
+                text_lines = raw_text.split("\n")
+                text_html = "".join(
+                    f'<span class="cw-line">{ln}\n</span>' for ln in text_lines
+                )
+            else:
+                text_html = raw_text
             h.append(
                 f'<div style="margin-bottom:14px;{anim}">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
@@ -504,12 +511,8 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
                 f'    <span style="font-weight:600;color:#111827;'
                 f'font-size:14px">{label}</span>'
                 f'  </div>'
-                f'  <div style="background:#f8faf8;border-radius:8px;'
-                f'border:1px solid #e2e8f0;'
-                f'padding:14px 16px;font-family:\'Inter\',monospace;font-size:12px;'
-                f'line-height:1.7;color:#111827;'
-                f'white-space:pre-wrap;max-height:180px;overflow-y:auto">'
-                f'{text}{cursor}'
+                f'  <div class="cw-stream-box" data-cw-stream="1">'
+                f'{text_html}{cursor}'
                 f'  </div>'
                 f'</div>'
             )
@@ -522,9 +525,7 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
                 f'font-size:14px">{label}</span>'
                 f'    <span class="pulse-indicator"></span>'
                 f'  </div>'
-                f'  <div style="background:#f8faf8;border-radius:8px;'
-                f'border:1px solid #e2e8f0;'
-                f'padding:14px 16px;color:#bbb;font-size:12px">'
+                f'  <div class="cw-stream-box">'
                 f'    <span class="typewriter-cursor">|</span>'
                 f'  </div>'
                 f'</div>'
@@ -545,7 +546,7 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
 # ── Action Plan Formatter ────────────────────────────────────────────────────
 
 def _robust_json(raw: str | None) -> dict | None:
-    """Best-effort JSON extraction from LLM text (think tags, code fences)."""
+    """Best-effort JSON extraction from LLM text (think tags, code fences, truncation)."""
     if not raw:
         return None
     text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
@@ -559,6 +560,18 @@ def _robust_json(raw: str | None) -> dict | None:
     if match:
         try:
             return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+    # Try repairing truncated JSON
+    brace_start = text.find("{")
+    if brace_start >= 0:
+        fragment = text[brace_start:]
+        fragment = re.sub(r',?\s*"[^"]*"\s*:\s*$', "", fragment)
+        opens = fragment.count("{") - fragment.count("}")
+        open_brackets = fragment.count("[") - fragment.count("]")
+        repair = fragment + ("]" * max(open_brackets, 0)) + ("}" * max(opens, 0))
+        try:
+            return json.loads(repair)
         except json.JSONDecodeError:
             pass
     return None
@@ -767,6 +780,19 @@ def _format_followup_report(followup_action, round_num=1):
         "REMOVE": (ICON["diff_minus"], "#dc2626", "REMOVED"),
         "KEEP": (ICON["check_circle"], "#16a34a", "UNCHANGED"),
     }
+    section_labels = {
+        "immediate_actions": "Immediate Actions",
+        "monitor_next_7_days": "Monitor in the Next 7 Days",
+        "regular_practices": "Regular Practices",
+        "do_not_do": "Do Not Do",
+        "when_to_seek_further_help": "When to Seek Further Help",
+        "condition": "Crop Condition",
+    }
+
+    def _friendly_section(raw_name):
+        if raw_name in section_labels:
+            return section_labels[raw_name]
+        return raw_name.replace("_", " ").title()
 
     if changes:
         h.append(
@@ -783,6 +809,7 @@ def _format_followup_report(followup_action, round_num=1):
             is_contradict = ct == "CONTRADICT"
             border_style = f"border-left:4px solid {color};" if is_contradict else ""
             bg = "#ffffff"
+            section_display = _friendly_section(change.get("section", ""))
 
             h.append(
                 f'<div style="background:{bg};border-radius:8px;{border_style}'
@@ -794,7 +821,7 @@ def _format_followup_report(followup_action, round_num=1):
                 f'border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px">'
                 f'{badge_text}</span>'
                 f'  <span style="font-size:12px;color:#6b7280">'
-                f'{change.get("section", "")}</span>'
+                f'{section_display}</span>'
                 f'</div>'
             )
             if change.get("initial_recommendation") and ct != "ADD":
@@ -1387,18 +1414,22 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
             continue
 
         if is_done or is_streaming:
-            text = completed.get(agent_id, "") if is_done else streaming[1]
+            raw_text = completed.get(agent_id, "") if is_done else streaming[1]
             cursor = "" if is_done else '<span class="typewriter-cursor">|</span>'
             check = f'<span style="color:#16a34a">{ICON["check_circle"]}</span>' if is_done else f'<span style="color:#16a34a">{icon}</span>'
+            if is_streaming:
+                text_lines = raw_text.split("\n")
+                text_html = "".join(
+                    f'<span class="cw-line">{ln}\n</span>' for ln in text_lines
+                )
+            else:
+                text_html = raw_text
             h.append(
                 f'<div style="margin-bottom:14px;{"animation:fadeSlideIn 0.35s ease;" if is_done else ""}">'
                 f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
                 f'    {check}<span style="font-weight:600;color:#111827;font-size:14px">{label}</span></div>'
-                f'  <div style="background:#f8faf8;border-radius:8px;'
-                f'border:1px solid #e2e8f0;'
-                f'padding:14px 16px;font-family:\'Inter\',monospace;font-size:12px;'
-                f'line-height:1.7;color:#111827;white-space:pre-wrap;max-height:180px;overflow-y:auto">'
-                f'{text}{cursor}</div></div>'
+                f'  <div class="cw-stream-box" data-cw-stream="1">'
+                f'{text_html}{cursor}</div></div>'
             )
         elif is_running:
             h.append(
@@ -1407,9 +1438,7 @@ def _pipeline_html_followup(completed, running=None, streaming=None, pre_step=No
                 f'    <span style="color:#16a34a">{icon}</span>'
                 f'    <span style="font-weight:600;color:#111827;font-size:14px">{label}</span>'
                 f'    <span class="pulse-indicator"></span></div>'
-                f'  <div style="background:#f8faf8;border-radius:8px;'
-                f'border:1px solid #e2e8f0;'
-                f'padding:14px 16px;color:#bbb;font-size:12px">'
+                f'  <div class="cw-stream-box">'
                 f'    <span class="typewriter-cursor">|</span></div></div>'
             )
         else:
@@ -1558,6 +1587,16 @@ with gr.Blocks(
 
         fix();
         setInterval(fix, 2000);
+    })();
+
+    /* Auto-scroll streaming containers to bottom */
+    (function autoScrollStream() {
+        function scroll() {
+            document.querySelectorAll('.cw-stream-box[data-cw-stream]').forEach(function(el) {
+                el.scrollTop = el.scrollHeight;
+            });
+        }
+        setInterval(scroll, 120);
     })();
 
     </script>""")

@@ -396,6 +396,33 @@ button svg {{
     font-weight: 300;
 }}
 
+/* ── Streaming text container ── */
+.cw-stream-box {{
+    background: {T_BG2} !important;
+    border-radius: 8px !important;
+    border: 1px solid {T_BORDER} !important;
+    padding: 14px 16px !important;
+    font-family: 'Inter', monospace !important;
+    font-size: 12px !important;
+    line-height: 1.7 !important;
+    color: {T_TEXT} !important;
+    white-space: pre-wrap !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    scroll-behavior: smooth !important;
+}}
+@keyframes typeLine {{
+    from {{ opacity: 0; transform: translateX(-4px); }}
+    to   {{ opacity: 1; transform: translateX(0); }}
+}}
+.cw-stream-box .cw-line {{
+    display: block;
+    animation: typeLine 0.2s ease-out;
+}}
+.cw-stream-box .cw-line:last-of-type {{
+    animation: typeLine 0.25s ease-out;
+}}
+
 #cw-check-loc {{
     align-self: flex-end !important;
     margin-bottom: 4px !important;
