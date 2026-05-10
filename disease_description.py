@@ -94,6 +94,7 @@ def _extract_json(raw: str | None) -> dict:
     if not raw:
         return {"raw_output": "", "parse_error": True}
     text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = re.sub(r"<think>.*", "", text, flags=re.DOTALL).strip()
     text = re.sub(r"```(?:json)?\s*", "", text).strip()
     text = re.sub(r"```\s*$", "", text).strip()
     try:
@@ -106,7 +107,7 @@ def _extract_json(raw: str | None) -> dict:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
-    return {"raw_output": raw, "parse_error": True}
+    return {"raw_output": text, "parse_error": True}
 
 
 def write_rag_header(out_file: Path, metadata: dict[str, Any]) -> None:

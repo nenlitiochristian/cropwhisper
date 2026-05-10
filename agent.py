@@ -62,11 +62,18 @@ _supabase: SupabaseClient | None = None
 _rag_cache: list[dict] | None = None
 
 
+def _strip_thinking(text: str) -> str:
+    """Remove <think> blocks (terminated and unterminated) from model output."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<think>.*", "", text, flags=re.DOTALL)
+    return text.strip()
+
+
 def _extract_json(raw: str | None) -> dict:
     """Extract a JSON object from LLM output, handling think tags, code fences, and truncation."""
     if not raw:
         return {"raw_output": "", "parse_error": True}
-    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = _strip_thinking(raw)
     text = re.sub(r"```(?:json)?\s*", "", text).strip()
     text = re.sub(r"```\s*$", "", text).strip()
 
@@ -86,9 +93,7 @@ def _extract_json(raw: str | None) -> dict:
     brace_start = text.find("{")
     if brace_start >= 0:
         fragment = text[brace_start:]
-        # Remove trailing incomplete key-value pairs (e.g. `"key":` with no value)
         fragment = re.sub(r',?\s*"[^"]*"\s*:\s*$', "", fragment)
-        # Count unclosed braces/brackets and close them
         opens = fragment.count("{") - fragment.count("}")
         open_brackets = fragment.count("[") - fragment.count("]")
         repair = fragment + ("]" * max(open_brackets, 0)) + ("}" * max(opens, 0))
@@ -100,7 +105,7 @@ def _extract_json(raw: str | None) -> dict:
         except json.JSONDecodeError:
             pass
 
-    return {"raw_output": raw, "parse_error": True}
+    return {"raw_output": text, "parse_error": True}
 
 
 def _get_supabase() -> SupabaseClient | None:

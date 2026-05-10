@@ -302,7 +302,7 @@ def _extract_text(agent_id, data):
         parsed = _robust_json(raw)
         if parsed:
             return _format_agent_output(agent_id, parsed)
-        clean = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+        clean = _strip_thinking(raw)
         clean = re.sub(r"```(?:json)?\s*", "", clean)
         clean = re.sub(r"```\s*$", "", clean).strip()
         return clean
@@ -323,6 +323,8 @@ def _format_agent_output(agent_id, data):
     return _dict_to_lines(data)
 
 
+_VISUAL_SKIP_KEYS = {"thinking", "think", "reasoning", "thought", "raw_output", "parse_error"}
+
 def _format_visual_output(d):
     lines = []
     ps = d.get("plant_structure", {})
@@ -338,7 +340,10 @@ def _format_visual_output(d):
         if v:
             lines.append(f"\n{key.replace('_', ' ').upper()}")
             lines.append(f"  {v}")
-    return "\n".join(lines) if lines else _dict_to_lines(d)
+    if lines:
+        return "\n".join(lines)
+    filtered = {k: v for k, v in d.items() if k.lower() not in _VISUAL_SKIP_KEYS}
+    return _dict_to_lines(filtered) if filtered else _dict_to_lines(d)
 
 
 def _format_diagnosis_output(d):
@@ -545,11 +550,18 @@ def _pipeline_html(completed, running=None, streaming=None, pre_step=None):
 
 # ── Action Plan Formatter ────────────────────────────────────────────────────
 
+def _strip_thinking(text: str) -> str:
+    """Remove <think> blocks (terminated and unterminated) from model output."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<think>.*", "", text, flags=re.DOTALL)
+    return text.strip()
+
+
 def _robust_json(raw: str | None) -> dict | None:
     """Best-effort JSON extraction from LLM text (think tags, code fences, truncation)."""
     if not raw:
         return None
-    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    text = _strip_thinking(raw)
     text = re.sub(r"```(?:json)?\s*", "", text).strip()
     text = re.sub(r"```\s*$", "", text).strip()
     try:
